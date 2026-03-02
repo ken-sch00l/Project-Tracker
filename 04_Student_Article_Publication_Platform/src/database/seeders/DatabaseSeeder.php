@@ -15,11 +15,32 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            RoleSeeder::class,
+            CategorySeeder::class,
+            ArticleStatusSeeder::class,
+            UserSeeder::class,
+            ArticleSeeder::class,
         ]);
+
+        // Informational output for developers running seeds locally
+        $writer = \App\Models\User::whereHas('roles', fn($q) => $q->where('name','writer'))->first();
+        $editor = \App\Models\User::whereHas('roles', fn($q) => $q->where('name','editor'))->first();
+        $student = \App\Models\User::whereHas('roles', fn($q) => $q->where('name','student'))->first();
+
+        if ($this->command) {
+            $this->command->info('Seeded demo accounts:');
+            if ($writer) {
+                $this->command->info('Writer: ' . $writer->email . ' / password: password');
+            }
+            if ($editor) {
+                $this->command->info('Editor: ' . $editor->email . ' / password: password');
+            }
+            if ($student) {
+                $this->command->info('Student: ' . $student->email . ' / password: password');
+            }
+
+            $this->command->info('To enable sample routes for testing, set ALLOW_SAMPLE_ROUTES=true in your local .env');
+        }
     }
 }
