@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Route;
 // Sample routes are for development/reference only. Restrict them
 // to local/testing environments and require authentication so they
 // are not publicly exposed in production.
-// Allow sample routes only in local/testing AND when explicitly enabled
-// via the ALLOW_SAMPLE_ROUTES environment variable (true/false).
-if (app()->environment(['local', 'testing']) && filter_var(env('ALLOW_SAMPLE_ROUTES', false), FILTER_VALIDATE_BOOLEAN)) {
+if (app()->environment(['local', 'testing'])) {
     // Auth-protected sample pages
     Route::middleware('auth')->prefix('sample')->group(function () {
         Route::get('/email', [SampleController::class, 'testEmail']);
