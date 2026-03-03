@@ -1,13 +1,12 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-// ensure spatie role middleware alias is available for route groups
-// correct namespace for the middleware (singular "Middleware")
+// Spatie role middleware alias
 Route::aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
 
 Route::get('/', function () {
@@ -19,21 +18,10 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    $user = Auth::user();
-
-    // Redirect based on user role
-    if ($user->hasRole('writer')) {
-        return redirect()->route('writer.dashboard');
-    } elseif ($user->hasRole('editor')) {
-        return redirect()->route('editor.dashboard');
-    } elseif ($user->hasRole('student')) {
-        return redirect()->route('student.dashboard');
-    }
-
-    // Fallback default dashboard
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// ✅ Unified Dashboard
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -41,24 +29,28 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// application-specific routes
+/*
+|--------------------------------------------------------------------------
+| Action Routes (Role Protected)
+|--------------------------------------------------------------------------
+*/
 
+// Writer Actions
 Route::middleware(['auth','role:writer'])->prefix('writer')->name('writer.')->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\WriterController::class, 'dashboard'])->name('dashboard');
     Route::post('/articles', [\App\Http\Controllers\WriterController::class, 'store'])->name('articles.store');
     Route::post('/articles/{article}/submit', [\App\Http\Controllers\WriterController::class, 'submit'])->name('articles.submit');
     Route::post('/articles/{article}/revise', [\App\Http\Controllers\WriterController::class, 'revise'])->name('articles.revise');
 });
 
+// Editor Actions
 Route::middleware(['auth','role:editor'])->prefix('editor')->name('editor.')->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\EditorController::class, 'dashboard'])->name('dashboard');
     Route::get('/articles/{article}/review', [\App\Http\Controllers\EditorController::class, 'review'])->name('articles.review');
     Route::post('/articles/{article}/revision', [\App\Http\Controllers\EditorController::class, 'requestRevision'])->name('articles.requestRevision');
     Route::post('/articles/{article}/publish', [\App\Http\Controllers\EditorController::class, 'publish'])->name('articles.publish');
 });
 
+// Student Actions
 Route::middleware(['auth','role:student'])->prefix('student')->name('student.')->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\StudentController::class, 'dashboard'])->name('dashboard');
     Route::post('/articles/{article}/comment', [\App\Http\Controllers\StudentController::class, 'comment'])->name('articles.comment');
 });
 
