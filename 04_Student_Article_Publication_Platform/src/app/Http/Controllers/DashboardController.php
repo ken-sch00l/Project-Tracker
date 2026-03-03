@@ -36,6 +36,9 @@ class DashboardController extends Controller
         if ($user->hasRole('editor')) {
 
             $articles = Article::with(['status','category','writer'])
+                ->whereHas('status', function ($q) {
+                    $q->whereIn('name', ['submitted','needs_revision']);
+                })
                 ->latest()
                 ->get();
 

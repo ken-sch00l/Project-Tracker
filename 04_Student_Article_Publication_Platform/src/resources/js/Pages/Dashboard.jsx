@@ -25,7 +25,15 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
     const [anchorEl, setAnchorEl] = useState(null);
     const [form, setForm] = useState({ title: '', content: '' });
 
+    // Editor State
+    const [editorTab, setEditorTab] = useState(0);
+    const [search, setSearch] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [sortOrder, setSortOrder] = useState('newest');
+
     const handleLogout = () => router.post('/logout');
+
+    /* -------------------- Stats Section -------------------- */
 
     const renderStats = () => {
         if (!stats) return null;
@@ -71,6 +79,8 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
         );
     };
 
+    /* -------------------- Writer Dashboard -------------------- */
+
     const renderWriterContent = () => (
         <>
             <Tabs
@@ -82,7 +92,6 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                 <Tab label="My Articles" />
             </Tabs>
 
-            {/* CREATE TAB */}
             {activeTab === 0 && (
                 <Paper
                     sx={{
@@ -142,7 +151,6 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                 </Paper>
             )}
 
-            {/* MY ARTICLES TAB */}
             {activeTab === 1 && (
                 <Box
                     sx={{
@@ -162,9 +170,7 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                                 justifyContent: 'space-between',
                                 border: '1px solid #E5E7EB',
                                 borderRadius: 3,
-                                backgroundColor: 'white',
                                 transition: 'all 0.25s ease',
-                                cursor: 'pointer',
                                 '&:hover': {
                                     transform: 'translateY(-6px)',
                                     boxShadow:
@@ -173,7 +179,7 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                                 }
                             }}
                         >
-                            <CardContent sx={{ flexGrow: 1 }}>
+                            <CardContent>
                                 <Typography
                                     variant="h6"
                                     sx={{
@@ -212,10 +218,7 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                                         color: '#374151'
                                     }}
                                 >
-                                    {article.status?.name?.replace(
-                                        '_',
-                                        ' '
-                                    )}
+                                    {article.status?.name?.replace('_', ' ')}
                                 </Box>
 
                                 <Typography
@@ -241,21 +244,12 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                                     justifyContent: 'space-between'
                                 }}
                             >
-                                <Button
-                                    size="small"
-                                    sx={{
-                                        textTransform: 'none',
-                                        color: '#0F172A'
-                                    }}
-                                >
-                                    View
-                                </Button>
+                                <Button size="small">View</Button>
 
                                 {article.status?.name === 'draft' && (
                                     <Button
                                         size="small"
                                         sx={{
-                                            textTransform: 'none',
                                             fontWeight: 600,
                                             color: '#C6A75E'
                                         }}
@@ -270,6 +264,178 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
             )}
         </>
     );
+
+    /* -------------------- Editor Dashboard -------------------- */
+
+    const renderEditorContent = () => {
+
+        const filtered = articles
+            .filter(article => {
+                if (editorTab === 0)
+                    return article.status?.name === 'submitted';
+                if (editorTab === 1)
+                    return article.status?.name === 'needs_revision';
+                return true;
+            })
+            .filter(article => {
+                if (categoryFilter === 'all') return true;
+                return article.category?.name === categoryFilter;
+            })
+            .filter(article => {
+                if (!search) return true;
+                return article.title.toLowerCase().includes(search.toLowerCase());
+            })
+            .sort((a, b) => {
+                if (sortOrder === 'newest')
+                    return new Date(b.updated_at) - new Date(a.updated_at);
+                return new Date(a.updated_at) - new Date(b.updated_at);
+            });
+
+        const categories = [...new Set(articles.map(a => a.category?.name).filter(Boolean))];
+
+        return (
+            <>
+                <Tabs
+                    value={editorTab}
+                    onChange={(e, v) => setEditorTab(v)}
+                    sx={{ mb: 3 }}
+                >
+                    <Tab label="Pending Review" />
+                    <Tab label="Needs Revision" />
+                </Tabs>
+
+                <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
+                    <input
+                        placeholder="Search by title..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        style={{
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: '1px solid #E5E7EB',
+                            minWidth: '220px'
+                        }}
+                    />
+
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        style={{
+                        padding: '10px 40px 10px 12px', // EXTRA RIGHT PADDING
+                        borderRadius: '8px',
+                        border: '1px solid #E5E7EB',
+                        appearance: 'none',          // remove default styling
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+                        backgroundColor: 'white',
+                        position: 'relative'
+                    }}
+                    >
+                        <option value="all">All Categories</option>
+                        {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                        style={{
+                        padding: '10px 40px 10px 12px', // EXTRA RIGHT PADDING
+                        borderRadius: '8px',
+                        border: '1px solid #E5E7EB',
+                        appearance: 'none',          // remove default styling
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+                        backgroundColor: 'white',
+                        position: 'relative'
+                    }}
+                    >
+                        <option value="newest">Newest</option>
+                        <option value="oldest">Oldest</option>
+                    </select>
+                </Box>
+
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        gap: 4
+                    }}
+                >
+                    {filtered.map(article => (
+                        <Card
+                            key={article.id}
+                            sx={{
+                                height: 260,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                border: '1px solid #E5E7EB',
+                                borderRadius: 3,
+                                transition: 'all 0.25s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-6px)',
+                                    boxShadow: '0 12px 24px rgba(0,0,0,0.08)',
+                                    borderColor: '#C6A75E'
+                                }
+                            }}
+                        >
+                            <CardContent>
+                                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                                    {article.title}
+                                </Typography>
+
+                                <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                    By {article.writer?.name}
+                                </Typography>
+
+                                <Typography variant="caption" sx={{ display: 'block', mb: 2, color: '#6B7280' }}>
+                                    {article.category?.name}
+                                </Typography>
+
+                                <Box
+                                    sx={{
+                                        display: 'inline-block',
+                                        px: 1.5,
+                                        py: 0.5,
+                                        borderRadius: 2,
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        backgroundColor:
+                                            article.status?.name === 'submitted'
+                                                ? '#FEF3C7'
+                                                : '#FDE2E1',
+                                        color:
+                                            article.status?.name === 'submitted'
+                                                ? '#92400E'
+                                                : '#991B1B'
+                                    }}
+                                >
+                                    {article.status?.name.replace('_', ' ')}
+                                </Box>
+                            </CardContent>
+
+                            <Box sx={{ px: 2, pb: 2, display: 'flex', justifyContent: 'space-between' }}>
+                                <Button size="small">Review</Button>
+
+                                {article.status?.name === 'submitted' && (
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                        <Button size="small" sx={{ color: '#B91C1C' }}>
+                                            Request Revision
+                                        </Button>
+                                        <Button size="small" sx={{ color: '#047857', fontWeight: 600 }}>
+                                            Publish
+                                        </Button>
+                                    </Box>
+                                )}
+                            </Box>
+                        </Card>
+                    ))}
+                </Box>
+            </>
+        );
+    };
 
     return (
         <>
@@ -286,21 +452,13 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                     }}
                 >
                     <Toolbar>
-                        <Typography
-                            variant="h6"
-                            sx={{ flexGrow: 1, fontWeight: 600 }}
-                        >
+                        <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
                             PublishHub
                         </Typography>
 
                         <Avatar
-                            onClick={(e) =>
-                                setAnchorEl(e.currentTarget)
-                            }
-                            sx={{
-                                cursor: 'pointer',
-                                bgcolor: '#0F172A'
-                            }}
+                            onClick={(e) => setAnchorEl(e.currentTarget)}
+                            sx={{ cursor: 'pointer', bgcolor: '#0F172A' }}
                         >
                             {auth?.user?.name?.charAt(0)}
                         </Avatar>
@@ -316,20 +474,12 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
 
                             <Divider />
 
-                            <MenuItem
-                                onClick={() => {
-                                    setAnchorEl(null);
-                                    router.visit('/profile');
-                                }}
-                            >
+                            <MenuItem onClick={() => router.visit('/profile')}>
                                 Profile
                             </MenuItem>
 
                             <MenuItem
-                                onClick={() => {
-                                    setAnchorEl(null);
-                                    handleLogout();
-                                }}
+                                onClick={handleLogout}
                                 sx={{ color: '#B91C1C' }}
                             >
                                 Logout
@@ -339,18 +489,14 @@ export default function Dashboard({ role, stats, articles = [], auth }) {
                 </AppBar>
 
                 <Container sx={{ py: 6 }} maxWidth="lg">
-                    <Typography
-                        variant="h4"
-                        sx={{ mb: 4, fontWeight: 700 }}
-                    >
-                        {role?.charAt(0).toUpperCase() +
-                            role?.slice(1)}{' '}
-                        Dashboard
+                    <Typography variant="h4" sx={{ mb: 4, fontWeight: 700 }}>
+                        {role?.charAt(0).toUpperCase() + role?.slice(1)} Dashboard
                     </Typography>
 
                     {renderStats()}
 
                     {role === 'writer' && renderWriterContent()}
+                    {role === 'editor' && renderEditorContent()}
                 </Container>
             </Box>
         </>
