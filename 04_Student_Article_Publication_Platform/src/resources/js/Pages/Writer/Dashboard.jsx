@@ -1,71 +1,23 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, Link, router } from '@inertiajs/react'
 
-export default function Dashboard({ articles = [], stats = {} }) {
+export default function Dashboard({
+    articles = [],
+    stats = {},
+    popularArticles = [],
+    activity = []
+}) {
 
     const submitArticle = (id) => {
         router.post(`/writer/articles/${id}/submit`)
     }
 
-    const StatCard = ({ value, label, color }) => {
-
-        const radius = 36
-        const circumference = 2 * Math.PI * radius
-        const progress = Math.min(value * 10, 100)
-        const offset = circumference - (progress / 100) * circumference
-
-        return (
-
-            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center shadow-sm hover:shadow-md transition">
-
-                <div className="relative w-24 h-24 mb-3">
-
-                    <svg className="w-24 h-24 transform -rotate-90">
-
-                        <circle
-                            cx="48"
-                            cy="48"
-                            r={radius}
-                            stroke="#E5E7EB"
-                            strokeWidth="8"
-                            fill="none"
-                        />
-
-                        <circle
-                            cx="48"
-                            cy="48"
-                            r={radius}
-                            stroke={color}
-                            strokeWidth="8"
-                            fill="none"
-                            strokeDasharray={circumference}
-                            strokeDashoffset={offset}
-                            strokeLinecap="round"
-                        />
-
-                    </svg>
-
-                    <div className="absolute inset-0 flex items-center justify-center text-xl font-semibold">
-                        {value}
-                    </div>
-
-                </div>
-
-                <p className="text-sm text-gray-500">{label}</p>
-
-            </div>
-
-        )
-    }
+    const maxActivity = Math.max(...activity.map(a => a.total), 1)
 
     return (
 
         <AuthenticatedLayout
-            header={
-                <h2 className="text-4xl font-serif">
-                    Writer Dashboard
-                </h2>
-            }
+            header={<h2 className="text-4xl font-serif">Writer Dashboard</h2>}
         >
 
             <Head title="Writer Dashboard" />
@@ -74,42 +26,132 @@ export default function Dashboard({ articles = [], stats = {} }) {
 
                 {/* STATISTICS */}
 
-                <div className="grid md:grid-cols-5 gap-6 mb-14">
+                <div className="grid md:grid-cols-4 gap-6 mb-16">
 
-                    <StatCard
-                        value={stats.total_articles ?? 0}
-                        label="Articles"
-                        color="#0F172A"
-                    />
+                    <StatCard title="Total Articles" value={stats.total_articles || 0}/>
+                    <StatCard title="Drafts" value={stats.drafts || 0}/>
+                    <StatCard title="Submitted" value={stats.submitted || 0}/>
+                    <StatCard title="Published" value={stats.published || 0}/>
 
-                    <StatCard
-                        value={stats.drafts ?? 0}
-                        label="Drafts"
-                        color="#6B7280"
-                    />
+                </div>
 
-                    <StatCard
-                        value={stats.submitted ?? 0}
-                        label="Submitted"
-                        color="#2563EB"
-                    />
+                {/* WRITING ACTIVITY */}
 
-                    <StatCard
-                        value={stats.published ?? 0}
-                        label="Published"
-                        color="#16A34A"
-                    />
+                <div className="mb-16">
 
-                    <StatCard
-                        value={stats.comments ?? 0}
-                        label="Comments"
-                        color="#C6A75E"
-                    />
+                    <h3 className="text-2xl font-serif mb-6">
+                        Writing Activity
+                    </h3>
+
+                    <div className="bg-white border rounded-xl p-8 space-y-6">
+
+                        {activity.length === 0 ? (
+
+                            <p className="text-gray-500">
+                                No activity data yet.
+                            </p>
+
+                        ) : (
+
+                            activity.map(item => {
+
+                                const width = (item.total / maxActivity) * 100
+
+                                return (
+
+                                    <div key={item.month}>
+
+                                        <div className="flex justify-between mb-2">
+
+                                            <span>
+                                                {item.month}
+                                            </span>
+
+                                            <span className="text-sm text-gray-500">
+                                                {item.total} articles
+                                            </span>
+
+                                        </div>
+
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+
+                                            <div
+                                                className="bg-[#0F172A] h-2 rounded-full"
+                                                style={{ width: `${width}%` }}
+                                            />
+
+                                        </div>
+
+                                    </div>
+
+                                )
+
+                            })
+
+                        )}
+
+                    </div>
 
                 </div>
 
 
-                {/* HEADER */}
+                {/* MOST ENGAGING ARTICLES */}
+
+                <div className="mb-16">
+
+                    <h3 className="text-2xl font-serif mb-6">
+                        Most Engaging Articles
+                    </h3>
+
+                    {popularArticles.length === 0 ? (
+
+                        <div className="bg-white border rounded-xl p-8 text-gray-500">
+                            No engagement data yet.
+                        </div>
+
+                    ) : (
+
+                        <div className="bg-white border rounded-xl p-8 space-y-6">
+
+                            {popularArticles.map((article,index) => (
+
+                                <div key={article.id}>
+
+                                    <div className="flex justify-between mb-2">
+
+                                        <span className="font-medium">
+                                            #{index + 1} {article.title}
+                                        </span>
+
+                                        <span className="text-sm text-gray-500">
+                                            {article.comments_count} comments
+                                        </span>
+
+                                    </div>
+
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+
+                                        <div
+                                            className="bg-[#0F172A] h-2 rounded-full"
+                                            style={{
+                                                width: `${Math.min(article.comments_count * 25, 100)}%`
+                                            }}
+                                        />
+
+                                    </div>
+
+                                </div>
+
+                            ))}
+
+                        </div>
+
+                    )}
+
+                </div>
+
+
+                {/* ARTICLE MANAGEMENT */}
 
                 <div className="flex justify-between items-center mb-12">
 
@@ -127,7 +169,7 @@ export default function Dashboard({ articles = [], stats = {} }) {
 
                     <Link
                         href={route('writer.articles.create')}
-                        className="bg-[#0F172A] text-white px-7 py-3 rounded-md hover:bg-[#1E293B] transition shadow-sm hover:shadow-md"
+                        className="bg-[#0F172A] text-white px-7 py-3 rounded-md hover:bg-[#1E293B]"
                     >
                         Create Article
                     </Link>
@@ -135,126 +177,113 @@ export default function Dashboard({ articles = [], stats = {} }) {
                 </div>
 
 
-                {/* EMPTY STATE */}
+                <div className="grid md:grid-cols-3 gap-10">
 
-                {articles.length === 0 ? (
+                    {articles.map(article => {
 
-                    <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+                        const status = article.status?.name
 
-                        <p className="text-gray-600 text-lg">
-                            You have no articles yet. Start writing your first article.
-                        </p>
+                        return (
 
-                    </div>
+                            <div
+                                key={article.id}
+                                className="bg-white p-8 rounded-xl border hover:shadow-lg transition"
+                            >
 
-                ) : (
+                                <h4 className="text-xl font-semibold mb-2">
+                                    {article.title}
+                                </h4>
 
-                    <div className="grid md:grid-cols-3 gap-10">
+                                <p className="text-sm text-gray-500 mb-4">
+                                    {article.category?.name}
+                                </p>
 
-                        {articles.map(article => {
+                                <div className="flex flex-wrap gap-3">
 
-                            const status = article.status?.name
+                                    <Link
+                                        href={`/articles/${article.id}`}
+                                        className="text-sm px-4 py-2 border rounded-md"
+                                    >
+                                        View
+                                    </Link>
 
-                            return (
-
-                                <div
-                                    key={article.id}
-                                    className="bg-white p-8 rounded-xl border border-gray-200 hover:-translate-y-1 hover:shadow-lg transition"
-                                >
-
-                                    <h4 className="text-xl font-semibold mb-2">
-                                        {article.title}
-                                    </h4>
-
-                                    <p className="text-sm text-gray-500 mb-4">
-                                        {article.category?.name}
-                                    </p>
-
-                                    <div className="mb-6">
-
-                                        {status === "draft" && (
-                                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-gray-100 text-gray-600">
-                                                Draft
-                                            </span>
-                                        )}
-
-                                        {status === "submitted" && (
-                                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-blue-100 text-blue-600">
-                                                Submitted
-                                            </span>
-                                        )}
-
-                                        {status === "needs_revision" && (
-                                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-orange-100 text-orange-600">
-                                                Needs Revision
-                                            </span>
-                                        )}
-
-                                        {status === "published" && (
-                                            <span className="text-xs font-medium px-3 py-1 rounded-full bg-green-100 text-green-600">
-                                                Published
-                                            </span>
-                                        )}
-
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-3">
+                                    {(status === "draft" || status === "needs_revision") && (
 
                                         <Link
-                                            href={`/articles/${article.id}`}
-                                            className="text-sm px-4 py-2 border rounded-md hover:bg-gray-50"
+                                            href={`/articles/${article.id}/edit`}
+                                            className="text-sm px-4 py-2 bg-blue-500 text-white rounded-md"
                                         >
-                                            View
+                                            Edit
                                         </Link>
 
-                                        {(status === "draft" || status === "needs_revision") && (
+                                    )}
 
-                                            <Link
-                                                href={`/articles/${article.id}/edit`}
-                                                className="text-sm px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                            >
-                                                Edit
-                                            </Link>
+                                    {status === "draft" && (
 
-                                        )}
+                                        <button
+                                            onClick={() => submitArticle(article.id)}
+                                            className="text-sm px-4 py-2 bg-green-600 text-white rounded-md"
+                                        >
+                                            Submit
+                                        </button>
 
-                                        {status === "draft" && (
-
-                                            <button
-                                                onClick={() => submitArticle(article.id)}
-                                                className="text-sm px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                                            >
-                                                Submit
-                                            </button>
-
-                                        )}
-
-                                        {status === "needs_revision" && (
-
-                                            <button
-                                                onClick={() => submitArticle(article.id)}
-                                                className="text-sm px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                                            >
-                                                Resubmit
-                                            </button>
-
-                                        )}
-
-                                    </div>
+                                    )}
 
                                 </div>
 
-                            )
+                            </div>
 
-                        })}
+                        )
 
-                    </div>
+                    })}
 
-                )}
+                </div>
 
             </div>
 
         </AuthenticatedLayout>
+
+    )
+}
+
+
+function StatCard({ title, value }) {
+
+    const percent = Math.min(value * 10, 100)
+
+    return (
+
+        <div className="bg-white border rounded-xl p-6 flex flex-col items-center">
+
+            <div className="relative w-20 h-20 mb-3">
+
+                <svg className="w-20 h-20 transform -rotate-90">
+
+                    <circle cx="40" cy="40" r="34" stroke="#e5e7eb" strokeWidth="6" fill="none"/>
+
+                    <circle
+                        cx="40"
+                        cy="40"
+                        r="34"
+                        stroke="#0F172A"
+                        strokeWidth="6"
+                        fill="none"
+                        strokeDasharray="214"
+                        strokeDashoffset={214 - (214 * percent) / 100}
+                        style={{ transition: "stroke-dashoffset 1s ease" }}
+                    />
+
+                </svg>
+
+                <div className="absolute inset-0 flex items-center justify-center font-semibold">
+                    {value}
+                </div>
+
+            </div>
+
+            <p className="text-sm text-gray-500">{title}</p>
+
+        </div>
 
     )
 }

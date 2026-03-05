@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Article;
 use App\Models\ArticleStatus;
 use App\Models\Category;
-use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -13,9 +12,9 @@ use Inertia\Inertia;
 class WriterController extends Controller
 {
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Writer Dashboard
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     public function dashboard()
@@ -27,42 +26,80 @@ class WriterController extends Controller
             ->latest()
             ->get();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Statistics
+        |--------------------------------------------------------------------------
+        */
+
         $stats = [
+
             'total_articles' => Article::where('writer_id', $writerId)->count(),
 
             'drafts' => Article::where('writer_id', $writerId)
-                ->whereHas('status', function($q){
-                    $q->where('name','draft');
-                })
+                ->whereHas('status', fn($q) => $q->where('name','draft'))
                 ->count(),
 
             'submitted' => Article::where('writer_id', $writerId)
-                ->whereHas('status', function($q){
-                    $q->where('name','submitted');
-                })
+                ->whereHas('status', fn($q) => $q->where('name','submitted'))
                 ->count(),
 
             'published' => Article::where('writer_id', $writerId)
-                ->whereHas('status', function($q){
-                    $q->where('name','published');
-                })
+                ->whereHas('status', fn($q) => $q->where('name','published'))
                 ->count(),
-
-            'comments' => Comment::whereHas('article', function($q) use ($writerId){
-                $q->where('writer_id', $writerId);
-            })->count(),
         ];
+
+        /*
+        |--------------------------------------------------------------------------
+        | Most Engaging Articles (Top 5 by comments)
+        |--------------------------------------------------------------------------
+        */
+
+        $popularArticles = Article::where('writer_id', $writerId)
+            ->withCount('comments')
+            ->orderByDesc('comments_count')
+            ->limit(5)
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Writing Activity (Articles per month)
+        |--------------------------------------------------------------------------
+        */
+
+        $activity = Article::where('writer_id', $writerId)
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(function ($item) {
+
+                $months = [
+                    1 => 'Jan', 2 => 'Feb', 3 => 'Mar',
+                    4 => 'Apr', 5 => 'May', 6 => 'Jun',
+                    7 => 'Jul', 8 => 'Aug', 9 => 'Sep',
+                    10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+                ];
+
+                return [
+                    'month' => $months[$item->month],
+                    'total' => $item->total
+                ];
+            });
 
         return Inertia::render('Writer/Dashboard', [
             'articles' => $articles,
-            'stats' => $stats
+            'stats' => $stats,
+            'popularArticles' => $popularArticles,
+            'activity' => $activity
         ]);
     }
 
+
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Create Article Page
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     public function create()
@@ -74,10 +111,11 @@ class WriterController extends Controller
         ]);
     }
 
+
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Save Draft / Submit
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     public function store(Request $request)
@@ -109,29 +147,33 @@ class WriterController extends Controller
         return redirect()->route('writer.dashboard');
     }
 
+
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Submit Draft
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     public function submit(Article $article)
     {
-        $submitted = ArticleStatus::where('name', 'submitted')->first();
+        $submitted = ArticleStatus::where('name','submitted')->first();
 
         if ($submitted) {
+
             $article->update([
                 'status_id' => $submitted->id
             ]);
+
         }
 
         return redirect()->route('writer.dashboard');
     }
 
+
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Revise Article
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     public function revise(Request $request, Article $article)
