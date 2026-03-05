@@ -1,29 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, Link } from '@inertiajs/react'
 
-export default function Dashboard({ articles = [] }) {
-
-    const StatCard = ({title,value}) => (
-
-        <div className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:shadow-md transition">
-            <p className="text-gray-500 text-sm">{title}</p>
-            <p className="text-3xl font-semibold">{value}</p>
-        </div>
-
-    )
-
-    const Badge = ({status}) => {
-
-        const styles = {
-            published: "bg-green-100 text-green-700 border-green-200"
-        }
-
-        return(
-            <span className={`text-xs px-3 py-1 rounded-full border ${styles[status]}`}>
-                {status}
-            </span>
-        )
-    }
+export default function Dashboard({ articles = [], stats = {}, popularArticles = [] }) {
 
     return (
 
@@ -35,18 +13,80 @@ export default function Dashboard({ articles = [] }) {
 
             <div className="max-w-6xl mx-auto px-12 pb-20">
 
-                {/* COUNTER */}
 
-                <div className="grid md:grid-cols-1 gap-6 mb-14">
+                {/* STATISTICS */}
+
+                <div className="grid md:grid-cols-3 gap-6 mb-14">
 
                     <StatCard
-                        title="Published Articles"
-                        value={articles.length}
+                        value={stats.articles_available ?? 0}
+                        label="Articles Available"
+                        color="#16A34A"
+                    />
+
+                    <StatCard
+                        value={stats.comments_posted ?? 0}
+                        label="Comments Posted"
+                        color="#2563EB"
+                    />
+
+                    <StatCard
+                        value={stats.total_comments ?? 0}
+                        label="Platform Comments"
+                        color="#0F172A"
                     />
 
                 </div>
 
-                {/* ARTICLES */}
+
+                {/* POPULAR ARTICLES */}
+
+                <h3 className="text-2xl font-serif mb-6">
+                    Popular Articles
+                </h3>
+
+                <div className="grid md:grid-cols-3 gap-8 mb-16">
+
+                    {popularArticles.map(article => (
+
+                        <div
+                            key={article.id}
+                            className="bg-white border border-gray-200 rounded-xl p-8 hover:shadow-lg transition"
+                        >
+
+                            <h4 className="text-lg font-semibold mb-2">
+                                {article.title}
+                            </h4>
+
+                            <p className="text-sm text-gray-500 mb-2">
+                                {article.writer?.name}
+                            </p>
+
+                            <p className="text-sm text-gray-400 mb-4">
+                                {article.comments_count} comments
+                            </p>
+
+                            <Link
+                                href={route('articles.show', article.id)}
+                                className="bg-[#0F172A] text-white px-4 py-2 rounded-md text-sm hover:bg-[#1E293B]"
+                            >
+                                Read Article
+                            </Link>
+
+                        </div>
+
+                    ))}
+
+                </div>
+
+
+
+                {/* ALL ARTICLES */}
+
+                <h3 className="text-2xl font-serif mb-6">
+                    Published Articles
+                </h3>
+
 
                 {articles.length === 0 ? (
 
@@ -77,7 +117,9 @@ export default function Dashboard({ articles = [] }) {
                                     {article.category?.name}
                                 </p>
 
-                                <Badge status={article.status?.name}/>
+                                <span className="text-xs px-3 py-1 rounded-full border bg-green-100 text-green-700 border-green-200">
+                                    Published
+                                </span>
 
                                 <div className="mt-6">
 
@@ -101,5 +143,58 @@ export default function Dashboard({ articles = [] }) {
             </div>
 
         </AuthenticatedLayout>
+    )
+}
+
+
+
+function StatCard({ value, label, color }) {
+
+    const radius = 36
+    const circumference = 2 * Math.PI * radius
+    const progress = Math.min(value * 10, 100)
+    const offset = circumference - (progress / 100) * circumference
+
+    return (
+
+        <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center shadow-sm hover:shadow-md transition">
+
+            <div className="relative w-24 h-24 mb-3">
+
+                <svg className="w-24 h-24 transform -rotate-90">
+
+                    <circle
+                        cx="48"
+                        cy="48"
+                        r={radius}
+                        stroke="#E5E7EB"
+                        strokeWidth="8"
+                        fill="none"
+                    />
+
+                    <circle
+                        cx="48"
+                        cy="48"
+                        r={radius}
+                        stroke={color}
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                        strokeLinecap="round"
+                    />
+
+                </svg>
+
+                <div className="absolute inset-0 flex items-center justify-center text-xl font-semibold">
+                    {value}
+                </div>
+
+            </div>
+
+            <p className="text-sm text-gray-500">{label}</p>
+
+        </div>
+
     )
 }

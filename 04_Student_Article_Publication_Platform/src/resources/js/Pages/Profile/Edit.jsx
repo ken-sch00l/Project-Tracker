@@ -8,22 +8,26 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 export default function Edit({ mustVerifyEmail, status }) {
 
     const { auth } = usePage().props
-    const role = auth.user.roles?.[0]?.name
+    const role = auth?.user?.roles?.[0]?.name
+
+    const dashboardRoute = {
+        writer: 'writer.dashboard',
+        editor: 'editor.dashboard',
+        student: 'student.dashboard'
+    }[role]
+
+    const dashboardLabel = {
+        writer: 'Writer Dashboard',
+        editor: 'Editor Dashboard',
+        student: 'Student Dashboard'
+    }[role]
 
     const goBack = () => {
-
-        if (role === "writer") {
-            router.visit('/writer/dashboard')
+        if (dashboardRoute) {
+            router.visit(route(dashboardRoute))
+        } else {
+            router.visit('/')
         }
-
-        if (role === "editor") {
-            router.visit('/editor/dashboard')
-        }
-
-        if (role === "student") {
-            router.visit('/student/dashboard')
-        }
-
     }
 
     return (
@@ -46,9 +50,8 @@ export default function Edit({ mustVerifyEmail, status }) {
                     onClick={goBack}
                     className="mb-6 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-sm"
                 >
-                    ← Back to Dashboard
+                    ← Back to {dashboardLabel}
                 </button>
-
 
                 <div className="space-y-10">
 

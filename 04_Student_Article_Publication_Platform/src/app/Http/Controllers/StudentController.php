@@ -18,6 +18,7 @@ class StudentController extends Controller
 
     public function dashboard()
     {
+
         $articles = Article::whereHas('status', function ($q) {
             $q->where('name', 'published');
         })
@@ -25,10 +26,50 @@ class StudentController extends Controller
         ->latest()
         ->get();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Statistics
+        |--------------------------------------------------------------------------
+        */
+
+        $stats = [
+
+            'articles_available' => Article::whereHas('status', function ($q) {
+                $q->where('name','published');
+            })->count(),
+
+            'comments_posted' => Comment::where('student_id', Auth::id())->count(),
+
+            'total_comments' => Comment::count(),
+
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Popular Articles
+        |--------------------------------------------------------------------------
+        */
+
+        $popularArticles = Article::whereHas('status', function ($q) {
+            $q->where('name','published');
+        })
+        ->with(['writer'])
+        ->withCount('comments')
+        ->orderByDesc('comments_count')
+        ->take(5)
+        ->get();
+
+
         return Inertia::render('Student/Dashboard', [
-            'articles' => $articles
+            'articles' => $articles,
+            'stats' => $stats,
+            'popularArticles' => $popularArticles
         ]);
     }
+
+
 
     /*
     |--------------------------------------------------------------------------
@@ -55,7 +96,7 @@ class StudentController extends Controller
         }
 
         return redirect()
-            ->back()
+            ->route('student.dashboard')
             ->with('success', 'Comment posted successfully.');
     }
 }

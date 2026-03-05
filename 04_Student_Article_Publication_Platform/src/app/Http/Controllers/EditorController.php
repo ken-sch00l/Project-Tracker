@@ -19,6 +19,7 @@ class EditorController extends Controller
 
     public function dashboard()
     {
+
         $pending = Article::whereHas('status', function ($q) {
             $q->where('name', 'submitted');
         })
@@ -33,11 +34,39 @@ class EditorController extends Controller
         ->latest()
         ->get();
 
+
+        /*
+        |------------------------------------------------------------------
+        | Statistics
+        |------------------------------------------------------------------
+        */
+
+        $stats = [
+
+            'pending_reviews' => Article::whereHas('status', function ($q) {
+                $q->where('name','submitted');
+            })->count(),
+
+            'needs_revision' => Article::whereHas('status', function ($q) {
+                $q->where('name','needs_revision');
+            })->count(),
+
+            'published_articles' => Article::whereHas('status', function ($q) {
+                $q->where('name','published');
+            })->count(),
+
+            'articles_reviewed' => Article::where('editor_id', Auth::id())->count(),
+
+        ];
+
+
         return Inertia::render('Editor/Dashboard', [
             'pending' => $pending,
-            'needsRevision' => $needsRevision
+            'needsRevision' => $needsRevision,
+            'stats' => $stats
         ]);
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -51,6 +80,7 @@ class EditorController extends Controller
             'article' => $article->load(['writer','category','status','revisions'])
         ]);
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -89,6 +119,7 @@ class EditorController extends Controller
             ->route('editor.dashboard')
             ->with('success', 'Revision requested.');
     }
+
 
     /*
     |--------------------------------------------------------------------------

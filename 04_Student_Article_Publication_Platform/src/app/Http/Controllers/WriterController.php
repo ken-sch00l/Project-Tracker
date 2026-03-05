@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Article;
 use App\Models\ArticleStatus;
 use App\Models\Category;
+use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -19,13 +20,42 @@ class WriterController extends Controller
 
     public function dashboard()
     {
+        $writerId = Auth::id();
+
         $articles = Article::with(['status','category'])
-            ->where('writer_id', Auth::id())
+            ->where('writer_id', $writerId)
             ->latest()
             ->get();
 
+        $stats = [
+            'total_articles' => Article::where('writer_id', $writerId)->count(),
+
+            'drafts' => Article::where('writer_id', $writerId)
+                ->whereHas('status', function($q){
+                    $q->where('name','draft');
+                })
+                ->count(),
+
+            'submitted' => Article::where('writer_id', $writerId)
+                ->whereHas('status', function($q){
+                    $q->where('name','submitted');
+                })
+                ->count(),
+
+            'published' => Article::where('writer_id', $writerId)
+                ->whereHas('status', function($q){
+                    $q->where('name','published');
+                })
+                ->count(),
+
+            'comments' => Comment::whereHas('article', function($q) use ($writerId){
+                $q->where('writer_id', $writerId);
+            })->count(),
+        ];
+
         return Inertia::render('Writer/Dashboard', [
-            'articles' => $articles
+            'articles' => $articles,
+            'stats' => $stats
         ]);
     }
 

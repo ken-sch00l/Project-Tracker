@@ -1,10 +1,61 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, Link, router } from '@inertiajs/react'
 
-export default function Dashboard({ articles = [] }) {
+export default function Dashboard({ articles = [], stats = {} }) {
 
     const submitArticle = (id) => {
         router.post(`/writer/articles/${id}/submit`)
+    }
+
+    const StatCard = ({ value, label, color }) => {
+
+        const radius = 36
+        const circumference = 2 * Math.PI * radius
+        const progress = Math.min(value * 10, 100)
+        const offset = circumference - (progress / 100) * circumference
+
+        return (
+
+            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center shadow-sm hover:shadow-md transition">
+
+                <div className="relative w-24 h-24 mb-3">
+
+                    <svg className="w-24 h-24 transform -rotate-90">
+
+                        <circle
+                            cx="48"
+                            cy="48"
+                            r={radius}
+                            stroke="#E5E7EB"
+                            strokeWidth="8"
+                            fill="none"
+                        />
+
+                        <circle
+                            cx="48"
+                            cy="48"
+                            r={radius}
+                            stroke={color}
+                            strokeWidth="8"
+                            fill="none"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={offset}
+                            strokeLinecap="round"
+                        />
+
+                    </svg>
+
+                    <div className="absolute inset-0 flex items-center justify-center text-xl font-semibold">
+                        {value}
+                    </div>
+
+                </div>
+
+                <p className="text-sm text-gray-500">{label}</p>
+
+            </div>
+
+        )
     }
 
     return (
@@ -20,6 +71,43 @@ export default function Dashboard({ articles = [] }) {
             <Head title="Writer Dashboard" />
 
             <div className="max-w-6xl mx-auto px-12 pb-20">
+
+                {/* STATISTICS */}
+
+                <div className="grid md:grid-cols-5 gap-6 mb-14">
+
+                    <StatCard
+                        value={stats.total_articles ?? 0}
+                        label="Articles"
+                        color="#0F172A"
+                    />
+
+                    <StatCard
+                        value={stats.drafts ?? 0}
+                        label="Drafts"
+                        color="#6B7280"
+                    />
+
+                    <StatCard
+                        value={stats.submitted ?? 0}
+                        label="Submitted"
+                        color="#2563EB"
+                    />
+
+                    <StatCard
+                        value={stats.published ?? 0}
+                        label="Published"
+                        color="#16A34A"
+                    />
+
+                    <StatCard
+                        value={stats.comments ?? 0}
+                        label="Comments"
+                        color="#C6A75E"
+                    />
+
+                </div>
+
 
                 {/* HEADER */}
 
@@ -45,6 +133,7 @@ export default function Dashboard({ articles = [] }) {
                     </Link>
 
                 </div>
+
 
                 {/* EMPTY STATE */}
 
@@ -73,19 +162,13 @@ export default function Dashboard({ articles = [] }) {
                                     className="bg-white p-8 rounded-xl border border-gray-200 hover:-translate-y-1 hover:shadow-lg transition"
                                 >
 
-                                    {/* TITLE */}
-
                                     <h4 className="text-xl font-semibold mb-2">
                                         {article.title}
                                     </h4>
 
-                                    {/* CATEGORY */}
-
                                     <p className="text-sm text-gray-500 mb-4">
                                         {article.category?.name}
                                     </p>
-
-                                    {/* STATUS BADGE */}
 
                                     <div className="mb-6">
 
@@ -115,11 +198,7 @@ export default function Dashboard({ articles = [] }) {
 
                                     </div>
 
-                                    {/* ACTION BUTTONS */}
-
                                     <div className="flex flex-wrap gap-3">
-
-                                        {/* VIEW */}
 
                                         <Link
                                             href={`/articles/${article.id}`}
@@ -127,8 +206,6 @@ export default function Dashboard({ articles = [] }) {
                                         >
                                             View
                                         </Link>
-
-                                        {/* EDIT (Draft or Needs Revision) */}
 
                                         {(status === "draft" || status === "needs_revision") && (
 
@@ -141,8 +218,6 @@ export default function Dashboard({ articles = [] }) {
 
                                         )}
 
-                                        {/* SUBMIT (Draft) */}
-
                                         {status === "draft" && (
 
                                             <button
@@ -153,8 +228,6 @@ export default function Dashboard({ articles = [] }) {
                                             </button>
 
                                         )}
-
-                                        {/* RESUBMIT (Needs Revision) */}
 
                                         {status === "needs_revision" && (
 
