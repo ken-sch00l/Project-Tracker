@@ -4,18 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\ArticleStatus;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class WriterController extends Controller
 {
+    /*
+    |----------------------------------------------------------------------
+    | Writer Dashboard
+    |----------------------------------------------------------------------
+    */
+
     public function dashboard()
     {
-        $articles = Article::where('writer_id', auth()->id())->with('status', 'category')->get();
-        $categories = \App\Models\Category::orderBy('name')->get();
-        return Inertia::render('Writer/Dashboard', compact('articles', 'categories'));
+        $articles = Article::with(['status','category'])
+            ->where('writer_id', Auth::id())
+            ->latest()
+            ->get();
+
+        return Inertia::render('Writer/Dashboard', [
+            'articles' => $articles
+        ]);
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | Create Article Page
+    |----------------------------------------------------------------------
+    */
+
+    public function create()
+    {
+        $categories = Category::orderBy('name')->get();
+
+        return Inertia::render('Writer/CreateArticle', [
+            'categories' => $categories
+        ]);
+    }
+
+    /*
+    |----------------------------------------------------------------------
+    | Save Draft / Submit
+    |----------------------------------------------------------------------
+    */
 
     public function store(Request $request)
     {
@@ -27,46 +60,60 @@ class WriterController extends Controller
 
         $data['writer_id'] = Auth::id();
 
-        // determine status: draft by default, but if request asks to submit, mark submitted
-        $draftStatus = ArticleStatus::firstOrCreate(['name' => 'draft'], ['label' => 'Draft']);
-        $submittedStatus = ArticleStatus::firstOrCreate(['name' => 'submitted'], ['label' => 'Submitted']);
+        $draftStatus = ArticleStatus::firstOrCreate(
+            ['name' => 'draft'],
+            ['label' => 'Draft']
+        );
 
-        if ($request->boolean('submit')) {
-            $data['status_id'] = $submittedStatus->id;
-        } else {
-            $data['status_id'] = $draftStatus->id;
-        }
+        $submittedStatus = ArticleStatus::firstOrCreate(
+            ['name' => 'submitted'],
+            ['label' => 'Submitted']
+        );
 
-        $article = Article::create($data);
+        $data['status_id'] = $request->boolean('submit')
+            ? $submittedStatus->id
+            : $draftStatus->id;
 
-        // notify editors only when article is submitted
-        if ($data['status_id'] === $submittedStatus->id) {
-            $editors = \App\Models\User::role('editor')->get();
-            foreach ($editors as $editor) {
-                $editor->notify(new \App\Notifications\ArticleSubmittedNotification($article));
-            }
-            return redirect()->route('writer.dashboard')->with('success', 'Article submitted');
-        }
+        Article::create($data);
 
-        return redirect()->route('writer.dashboard')->with('success', 'Draft created');
+        return redirect()->route('writer.dashboard');
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | Submit Draft
+    |----------------------------------------------------------------------
+    */
 
     public function submit(Article $article)
     {
-        $this->authorize('submit', $article);
-        $submitted = ArticleStatus::where('name','submitted')->first();
-        $article->update(['status_id' => $submitted->id]);
-        // notify editors maybe
+        $submitted = ArticleStatus::where('name', 'submitted')->first();
 
-        return redirect()->back()->with('success', 'Article submitted');
+        if ($submitted) {
+            $article->update([
+                'status_id' => $submitted->id
+            ]);
+        }
+
+        return redirect()->route('writer.dashboard');
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | Revise Article
+    |----------------------------------------------------------------------
+    */
 
     public function revise(Request $request, Article $article)
     {
-        $this->authorize('requestRevision', $article);
-        $data = $request->validate(['content' => 'required']);
-        $article->update($data);
-        // status back to draft?
-        return redirect()->route('writer.dashboard')->with('success','Article revised');
+        $data = $request->validate([
+            'content' => 'required|string'
+        ]);
+
+        $article->update([
+            'content' => $data['content']
+        ]);
+
+        return redirect()->route('writer.dashboard');
     }
 }

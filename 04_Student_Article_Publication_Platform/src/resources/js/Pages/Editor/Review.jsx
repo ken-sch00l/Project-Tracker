@@ -1,229 +1,106 @@
-import React, { useState } from 'react';
-import {
-    Container,
-    Typography,
-    TextField,
-    Button,
-    Box,
-    Card,
-    CardContent,
-    AppBar,
-    Toolbar,
-    Grid,
-    Paper,
-    Divider,
-    Alert,
-} from '@mui/material';
-import { Inertia } from '@inertiajs/inertia';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import SendIcon from '@mui/icons-material/Send';
-import PublishIcon from '@mui/icons-material/Publish';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
+import { Head, router } from '@inertiajs/react'
+import { useState } from 'react'
 
 export default function Review({ article }) {
-    const [comments, setComments] = useState('');
-    const [loading, setLoading] = useState(false);
+
+    const [comments, setComments] = useState("")
 
     const requestRevision = () => {
-        setLoading(true);
-        Inertia.post(route('editor.articles.requestRevision', article), { comments });
-    };
+        router.post(route('editor.articles.requestRevision', article.id), {
+            comments
+        })
+    }
 
     const publish = () => {
-        setLoading(true);
-        Inertia.post(route('editor.articles.publish', article));
-    };
-
-    const handleBack = () => {
-        window.history.back();
-    };
+        router.post(route('editor.articles.publish', article.id))
+    }
 
     return (
-        <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', minHeight: '100vh', pb: 4 }}>
-            {/* Header */}
-            <AppBar
-                position="sticky"
-                sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    boxShadow: '0 4px 20px rgba(102, 126, 234, 0.2)',
-                }}
-            >
-                <Toolbar>
-                    <Button
-                        startIcon={<ArrowBackIcon />}
-                        onClick={handleBack}
-                        sx={{
-                            color: 'white',
-                            mr: 2,
-                        }}
-                    >
-                        Back
-                    </Button>
-                    <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                            Review Article
-                        </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                            {article.title}
-                        </Typography>
-                    </Box>
-                </Toolbar>
-            </AppBar>
 
-            <Container maxWidth="lg" sx={{ py: 4 }}>
-                <Grid container spacing={3}>
-                    {/* Article Content */}
-                    <Grid item xs={12} md={8}>
-                        <Card
-                            sx={{
-                                borderRadius: '12px',
-                                background: 'white',
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                                overflow: 'hidden',
-                            }}
-                        >
-                            <CardContent sx={{ p: 4 }}>
-                                <Typography
-                                    variant="h4"
-                                    sx={{
-                                        fontWeight: 700,
-                                        color: '#1e293b',
-                                        mb: 1,
-                                    }}
-                                >
-                                    {article.title}
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                                    <Typography variant="body2" color="textSecondary">
-                                        <strong>Author:</strong> {article.writer.name}
-                                    </Typography>
-                                    <Typography variant="body2" color="textSecondary">
-                                        <strong>Category:</strong> {article.category.name}
-                                    </Typography>
-                                    <Typography variant="body2" color="textSecondary">
-                                        <strong>Submitted:</strong> {new Date(article.created_at).toLocaleDateString()}
-                                    </Typography>
-                                </Box>
-                                <Divider sx={{ my: 3 }} />
-                                <Box
-                                    sx={{
-                                        '& p': { lineHeight: 1.8, color: '#475569' },
-                                        '& img': { maxWidth: '100%', height: 'auto', my: 2 },
-                                        '& strong': { fontWeight: 700 },
-                                        '& em': { fontStyle: 'italic' },
-                                    }}
-                                >
-                                    <div dangerouslySetInnerHTML={{ __html: article.content }} />
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    </Grid>
+        <AuthenticatedLayout
+            header={<h2 className="text-4xl font-serif">Editor Review</h2>}
+        >
 
-                    {/* Review Panel */}
-                    <Grid item xs={12} md={4}>
-                        <Paper
-                            sx={{
-                                p: 3,
-                                borderRadius: '12px',
-                                background: 'white',
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                                position: 'sticky',
-                                top: 100,
-                            }}
-                        >
-                            <Typography
-                                variant="h6"
-                                sx={{
-                                    fontWeight: 700,
-                                    color: '#1e293b',
-                                    mb: 2,
-                                }}
-                            >
-                                Editor Actions
-                            </Typography>
+            <Head title="Review Article" />
 
-                            <Alert severity="info" sx={{ mb: 3 }}>
-                                Choose to request revisions or publish this article.
-                            </Alert>
+            <div className="max-w-7xl mx-auto px-12 pb-20">
 
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    fontWeight: 600,
-                                    mb: 1,
-                                    color: '#64748b',
-                                }}
-                            >
-                                Revision Comments
-                            </Typography>
-                            <TextField
-                                placeholder="Add comments for the writer (optional)"
-                                fullWidth
-                                multiline
-                                rows={6}
-                                value={comments}
-                                onChange={(e) => setComments(e.target.value)}
-                                variant="outlined"
-                                sx={{
-                                    mb: 2,
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '8px',
-                                    },
-                                }}
+                <div className="grid grid-cols-3 gap-10">
+
+                    {/* ARTICLE SECTION */}
+
+                    <div className="col-span-2">
+
+                        {/* ARTICLE HEADER */}
+
+                        <div className="mb-8">
+
+                            <h1 className="text-3xl font-serif mb-2">
+                                {article.title}
+                            </h1>
+
+                            <p className="text-gray-500 text-sm">
+                                {article.writer?.name} • {article.category?.name}
+                            </p>
+
+                        </div>
+
+                        {/* ARTICLE CARD */}
+
+                        <div className="bg-white border border-gray-200 rounded-xl p-10 overflow-hidden">
+
+                            <div
+                                className="prose prose-lg max-w-none break-words"
+                                dangerouslySetInnerHTML={{ __html: article.content }}
                             />
 
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    startIcon={<SendIcon />}
-                                    onClick={requestRevision}
-                                    disabled={loading || !comments.trim()}
-                                    sx={{
-                                        color: '#e65100',
-                                        borderColor: '#e65100',
-                                        fontWeight: 700,
-                                        textTransform: 'none',
-                                        py: 1.2,
-                                        '&:hover': {
-                                            background: '#fff3e0',
-                                        },
-                                    }}
-                                >
-                                    Request Revision
-                                </Button>
-                                <Button
-                                    fullWidth
-                                    variant="contained"
-                                    startIcon={<PublishIcon />}
-                                    onClick={publish}
-                                    disabled={loading}
-                                    sx={{
-                                        background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
-                                        fontWeight: 700,
-                                        textTransform: 'none',
-                                        py: 1.2,
-                                    }}
-                                >
-                                    Approve & Publish
-                                </Button>
-                            </Box>
+                        </div>
 
-                            <Divider sx={{ my: 3 }} />
+                    </div>
 
-                            <Typography
-                                variant="caption"
-                                sx={{
-                                    display: 'block',
-                                    color: '#94a3b8',
-                                    textAlign: 'center',
-                                }}
+
+                    {/* EDITOR PANEL */}
+
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 h-fit sticky top-10">
+
+                        <h3 className="text-lg font-semibold mb-4">
+                            Editorial Actions
+                        </h3>
+
+                        <textarea
+                            value={comments}
+                            onChange={(e)=>setComments(e.target.value)}
+                            placeholder="Explain what needs revision..."
+                            className="w-full border border-gray-300 rounded-md p-3 mb-6"
+                            rows="6"
+                        />
+
+                        <div className="flex flex-col gap-3">
+
+                            <button
+                                onClick={requestRevision}
+                                className="bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-md transition"
                             >
-                                Article ID: {article.id}
-                            </Typography>
-                        </Paper>
-                    </Grid>
-                </Grid>
-            </Container>
-        </Box>
-    );
+                                Request Revision
+                            </button>
+
+                            <button
+                                onClick={publish}
+                                className="bg-green-600 hover:bg-green-700 text-white py-3 rounded-md transition"
+                            >
+                                Publish Article
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </AuthenticatedLayout>
+
+    )
 }

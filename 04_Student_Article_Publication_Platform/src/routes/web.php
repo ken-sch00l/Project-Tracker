@@ -1,13 +1,21 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WriterController;
+use App\Http\Controllers\EditorController;
+use App\Http\Controllers\StudentController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Models\Article;
 
-// Spatie role middleware alias
 Route::aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
+
+/*
+|--------------------------------------------------------------------------
+| Public Landing Page
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -18,41 +26,160 @@ Route::get('/', function () {
     ]);
 });
 
-// ✅ Unified Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
 
 /*
 |--------------------------------------------------------------------------
-| Action Routes (Role Protected)
+| Writer Routes
 |--------------------------------------------------------------------------
 */
 
-// Writer Actions
-Route::middleware(['auth','role:writer'])->prefix('writer')->name('writer.')->group(function () {
-    Route::post('/articles', [\App\Http\Controllers\WriterController::class, 'store'])->name('articles.store');
-    Route::post('/articles/{article}/submit', [\App\Http\Controllers\WriterController::class, 'submit'])->name('articles.submit');
-    Route::post('/articles/{article}/revise', [\App\Http\Controllers\WriterController::class, 'revise'])->name('articles.revise');
+Route::middleware(['auth','role:writer'])
+    ->prefix('writer')
+    ->name('writer.')
+    ->group(function () {
+
+        /* Dashboard */
+        Route::get('/dashboard', [WriterController::class, 'dashboard'])
+            ->name('dashboard');
+
+        /* Create Article Page */
+        Route::get('/articles/create', [WriterController::class, 'create'])
+            ->name('articles.create');
+
+        /* Store Article */
+        Route::post('/articles', [WriterController::class, 'store'])
+            ->name('articles.store');
+
+        /* Submit Draft */
+        Route::post('/articles/{article}/submit', [WriterController::class, 'submit'])
+            ->name('articles.submit');
+
+        /* Revise Article */
+        Route::post('/articles/{article}/revise', [WriterController::class, 'revise'])
+            ->name('articles.revise');
+
 });
 
-// Editor Actions
-Route::middleware(['auth','role:editor'])->prefix('editor')->name('editor.')->group(function () {
-    Route::get('/articles/{article}/review', [\App\Http\Controllers\EditorController::class, 'review'])->name('articles.review');
-    Route::post('/articles/{article}/revision', [\App\Http\Controllers\EditorController::class, 'requestRevision'])->name('articles.requestRevision');
-    Route::post('/articles/{article}/publish', [\App\Http\Controllers\EditorController::class, 'publish'])->name('articles.publish');
+
+/*
+|--------------------------------------------------------------------------
+| Editor Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth','role:editor'])
+    ->prefix('editor')
+    ->name('editor.')
+    ->group(function () {
+
+        /* Editor Dashboard */
+        Route::get('/dashboard', [EditorController::class, 'dashboard'])
+            ->name('dashboard');
+
+        /* Review Article */
+        Route::get('/articles/{article}/review', function (Article $article) {
+
+            return Inertia::render('Editor/Review', [
+                'article' => $article->load([
+                    'writer',
+                    'category',
+                    'status',
+                    'revisions'
+                ])
+            ]);
+
+        })->name('articles.review');
+
+        /* Request Revision */
+        Route::post('/articles/{article}/revision', [EditorController::class, 'requestRevision'])
+            ->name('articles.requestRevision');
+
+        /* Publish Article */
+        Route::post('/articles/{article}/publish', [EditorController::class, 'publish'])
+            ->name('articles.publish');
+
 });
 
-// Student Actions
-Route::middleware(['auth','role:student'])->prefix('student')->name('student.')->group(function () {
-    Route::post('/articles/{article}/comment', [\App\Http\Controllers\StudentController::class, 'comment'])->name('articles.comment');
+
+/*
+|--------------------------------------------------------------------------
+| Student Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth','role:student'])
+    ->prefix('student')
+    ->name('student.')
+    ->group(function () {
+
+        /* Student Dashboard */
+        Route::get('/dashboard', [StudentController::class, 'dashboard'])
+            ->name('dashboard');
+
+        /* Comment on Article */
+        Route::post('/articles/{article}/comment', [StudentController::class, 'comment'])
+            ->name('articles.comment');
+
 });
+
+
+/*
+|--------------------------------------------------------------------------
+| Article Pages (Shared)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth'])->group(function () {
+
+    /* View Article */
+    Route::get('/articles/{article}', function (Article $article) {
+
+        return Inertia::render('Article/Show', [
+            'article' => $article->load([
+                'writer',
+                'category',
+                'status',
+                'comments.student'
+            ])
+        ]);
+
+    })->name('articles.show');
+
+
+    /* Edit Article */
+    Route::get('/articles/{article}/edit', function (Article $article) {
+
+        return Inertia::render('Article/Edit', [
+            'article' => $article->load([
+                'writer',
+                'category',
+                'status'
+            ])
+        ]);
+
+    })->middleware('role:writer')->name('articles.edit');
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Profile
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
+
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->name('profile.destroy');
+
+});
+
 
 require __DIR__.'/auth.php';
-require __DIR__.'/sample.php';

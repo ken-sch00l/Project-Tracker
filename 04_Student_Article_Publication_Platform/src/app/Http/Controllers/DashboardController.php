@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Article;
+use App\Models\Category;
 
 class DashboardController extends Controller
 {
@@ -15,6 +16,7 @@ class DashboardController extends Controller
 
         $stats = [];
         $articles = [];
+        $categories = [];
 
         // Writer Data
         if ($user->hasRole('writer')) {
@@ -23,6 +25,8 @@ class DashboardController extends Controller
                 ->where('writer_id', $user->id)
                 ->latest()
                 ->get();
+
+            $categories = Category::orderBy('name')->get();
 
             $stats = [
                 'draft' => $articles->where('status.name','draft')->count(),
@@ -65,6 +69,7 @@ class DashboardController extends Controller
             'role' => $role,
             'stats' => $stats,
             'articles' => $articles,
+            'categories' => $categories,
         ]);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Models\Article;
 use App\Models\Revision;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -28,8 +27,9 @@ class RevisionRequestedNotification extends Notification
     {
         return (new MailMessage)
             ->subject('Revision Requested')
-            ->line('A revision has been requested for your article: '.$this->revision->article->title)
-            ->line('Comments: '.$this->revision->comments)
-            ->action('View Article', url(route('writer.dashboard')));
+            ->line('A revision has been requested for your article: ' . $this->revision->article->title)
+            ->line('Editor Feedback:')
+            ->line($this->revision->comments ?? 'No comments provided.')
+            ->action('View Article', route('articles.show', $this->revision->article->id));
     }
 }

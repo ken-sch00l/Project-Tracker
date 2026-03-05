@@ -16,3 +16,15 @@
 .animate-fadeUp {
   animation: fadeUp 0.8s ease forwards;
 }
+
+
+.prose div,
+.prose section,
+.prose article {
+    max-width: 100%;
+}
+
+.prose img,
+.prose table {
+    max-width: 100%;
+}

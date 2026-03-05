@@ -11,55 +11,111 @@ use Inertia\Inertia;
 
 class EditorController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Editor Dashboard
+    |--------------------------------------------------------------------------
+    */
+
     public function dashboard()
     {
         $pending = Article::whereHas('status', function ($q) {
             $q->where('name', 'submitted');
-        })->with('writer', 'category')->get();
+        })
+        ->with(['writer','category','status'])
+        ->latest()
+        ->get();
 
-        $published = Article::whereHas('status', function ($q) {
-            $q->where('name', 'published');
-        })->get();
+        $needsRevision = Article::whereHas('status', function ($q) {
+            $q->where('name', 'needs_revision');
+        })
+        ->with(['writer','category','status'])
+        ->latest()
+        ->get();
 
-        $categories = \App\Models\Category::orderBy('name')->get();
-        return Inertia::render('Editor/Dashboard', compact('pending','published','categories'));
+        return Inertia::render('Editor/Dashboard', [
+            'pending' => $pending,
+            'needsRevision' => $needsRevision
+        ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Review Page
+    |--------------------------------------------------------------------------
+    */
 
     public function review(Article $article)
     {
-        $this->authorize('view', $article);
-        return Inertia::render('Editor/Review', compact('article'));
+        return Inertia::render('Editor/Review', [
+            'article' => $article->load(['writer','category','status','revisions'])
+        ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Request Revision
+    |--------------------------------------------------------------------------
+    */
 
     public function requestRevision(Request $request, Article $article)
     {
-        $this->authorize('requestRevision', $article);
-        $data = $request->validate(['comments' => 'required|string']);
+        $data = $request->validate([
+            'comments' => 'required|string'
+        ]);
 
         $revision = Revision::create([
             'article_id' => $article->id,
             'editor_id' => Auth::id(),
-            'comments' => $data['comments'],
+            'comments' => $data['comments']
         ]);
 
-        $status = ArticleStatus::firstOrCreate(['name' => 'needs_revision'], ['label' => 'Needs Revision']);
-        $article->update(['status_id' => $status->id]);
+        $status = ArticleStatus::firstOrCreate(
+            ['name' => 'needs_revision'],
+            ['label' => 'Needs Revision']
+        );
 
-        // notify writer
-        $article->writer->notify(new \App\Notifications\RevisionRequestedNotification($revision));
+        $article->update([
+            'status_id' => $status->id
+        ]);
 
-        return redirect()->back()->with('success','Revision requested');
+        if ($article->writer) {
+            $article->writer->notify(
+                new \App\Notifications\RevisionRequestedNotification($revision)
+            );
+        }
+
+        return redirect()
+            ->route('editor.dashboard')
+            ->with('success', 'Revision requested.');
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Publish Article
+    |--------------------------------------------------------------------------
+    */
 
     public function publish(Article $article)
     {
-        $this->authorize('publish', $article);
-        $published = ArticleStatus::firstOrCreate(['name' => 'published'], ['label' => 'Published']);
-        $article->update(['status_id' => $published->id, 'editor_id' => Auth::id()]);
+        $published = ArticleStatus::firstOrCreate(
+            ['name' => 'published'],
+            ['label' => 'Published']
+        );
 
-        // notify writer
-        $article->writer->notify(new \App\Notifications\ArticlePublishedNotification($article));
+        $article->update([
+            'status_id' => $published->id,
+            'editor_id' => Auth::id()
+        ]);
 
-        return redirect()->back()->with('success','Article published');
+        if ($article->writer) {
+            $article->writer->notify(
+                new \App\Notifications\ArticlePublishedNotification($article)
+            );
+        }
+
+        return redirect()
+            ->route('editor.dashboard')
+            ->with('success', 'Article published.');
     }
 }

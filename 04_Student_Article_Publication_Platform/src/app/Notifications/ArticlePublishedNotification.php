@@ -27,7 +27,7 @@ class ArticlePublishedNotification extends Notification
     {
         return (new MailMessage)
             ->subject('Article Published')
-            ->line('Your article has been published: '.$this->article->title)
-            ->action('Read Article', url(route('student.dashboard')));
+            ->line('Your article has been published: ' . $this->article->title)
+            ->action('Read Article', route('articles.show', $this->article->id));
     }
 }
