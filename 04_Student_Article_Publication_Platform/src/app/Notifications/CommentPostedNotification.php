@@ -20,14 +20,23 @@ class CommentPostedNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['mail'];
+        return ['mail','database'];
     }
 
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('New Comment Posted')
-            ->line('A new comment has been posted on your article: '.$this->comment->article->title)
-            ->action('View Comments', url(route('student.dashboard')));
+            ->subject('New Comment On Your Article')
+            ->line('A student commented on your article.')
+            ->line('Article: '.$this->comment->article->title)
+            ->action('View Article', route('articles.show', $this->comment->article->id));
+    }
+
+    public function toDatabase($notifiable)
+    {
+        return [
+            'message' => 'New comment on: '.$this->comment->article->title,
+            'url' => route('articles.show', $this->comment->article->id)
+        ];
     }
 }

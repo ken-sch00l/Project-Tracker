@@ -5,17 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Article;
 use App\Models\ArticleStatus;
 use App\Models\Revision;
+use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class EditorController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Editor Dashboard
-    |--------------------------------------------------------------------------
-    */
 
     public function dashboard()
     {
@@ -36,9 +32,9 @@ class EditorController extends Controller
 
 
         /*
-        |------------------------------------------------------------------
-        | Statistics
-        |------------------------------------------------------------------
+        -----------------------------------------
+        Statistics
+        -----------------------------------------
         */
 
         $stats = [
@@ -60,19 +56,52 @@ class EditorController extends Controller
         ];
 
 
+        /*
+        -----------------------------------------
+        Platform Activity Analytics
+        -----------------------------------------
+        */
+
+        $months = [
+            1=>'Jan',2=>'Feb',3=>'Mar',4=>'Apr',
+            5=>'May',6=>'Jun',7=>'Jul',8=>'Aug',
+            9=>'Sep',10=>'Oct',11=>'Nov',12=>'Dec'
+        ];
+
+        $submitted = Article::whereHas('status', fn($q)=>$q->where('name','submitted'))
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->groupBy('month')
+            ->pluck('total','month');
+
+        $published = Article::whereHas('status', fn($q)=>$q->where('name','published'))
+            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->groupBy('month')
+            ->pluck('total','month');
+
+        $comments = Comment::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->groupBy('month')
+            ->pluck('total','month');
+
+        $activity = collect($months)->map(function($name,$num) use ($submitted,$published,$comments){
+
+            return [
+                'month'=>$name,
+                'submitted'=>$submitted[$num] ?? 0,
+                'published'=>$published[$num] ?? 0,
+                'comments'=>$comments[$num] ?? 0
+            ];
+
+        })->values();
+
+
         return Inertia::render('Editor/Dashboard', [
             'pending' => $pending,
             'needsRevision' => $needsRevision,
-            'stats' => $stats
+            'stats' => $stats,
+            'activity' => $activity
         ]);
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Review Page
-    |--------------------------------------------------------------------------
-    */
 
     public function review(Article $article)
     {
@@ -81,12 +110,6 @@ class EditorController extends Controller
         ]);
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Request Revision
-    |--------------------------------------------------------------------------
-    */
 
     public function requestRevision(Request $request, Article $article)
     {
@@ -115,17 +138,9 @@ class EditorController extends Controller
             );
         }
 
-        return redirect()
-            ->route('editor.dashboard')
-            ->with('success', 'Revision requested.');
+        return redirect()->route('editor.dashboard');
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Publish Article
-    |--------------------------------------------------------------------------
-    */
 
     public function publish(Article $article)
     {
@@ -145,8 +160,6 @@ class EditorController extends Controller
             );
         }
 
-        return redirect()
-            ->route('editor.dashboard')
-            ->with('success', 'Article published.');
+        return redirect()->route('editor.dashboard');
     }
 }

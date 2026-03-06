@@ -8,6 +8,9 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Article;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Notifications\DatabaseNotification;
 
 Route::aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
 
@@ -18,11 +21,50 @@ Route::aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::cla
 */
 
 Route::get('/', function () {
+
+    /*
+    |------------------------------------------
+    | Latest Published Articles
+    |------------------------------------------
+    */
+
+    $latestArticles = Article::whereHas('status', function ($q) {
+        $q->where('name', 'published');
+    })
+        ->with(['writer','category'])
+        ->latest()
+        ->take(6)
+        ->get();
+
+
+    /*
+    |------------------------------------------
+    | Top Writers Leaderboard
+    |------------------------------------------
+    */
+
+    $topWriters = User::role('writer')
+        ->withCount(['writtenArticles as published_count' => function ($q) {
+            $q->whereHas('status', function ($s) {
+                $s->where('name', 'published');
+            });
+        }])
+        ->orderByDesc('published_count')
+        ->take(5)
+        ->get();
+
+
     return Inertia::render('Welcome', [
+
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
+
+        'latestArticles' => $latestArticles,
+        'topWriters' => $topWriters
+
     ]);
 });
 
@@ -38,23 +80,18 @@ Route::middleware(['auth','role:writer'])
     ->name('writer.')
     ->group(function () {
 
-        /* Dashboard */
         Route::get('/dashboard', [WriterController::class, 'dashboard'])
             ->name('dashboard');
 
-        /* Create Article Page */
         Route::get('/articles/create', [WriterController::class, 'create'])
             ->name('articles.create');
 
-        /* Store Article */
         Route::post('/articles', [WriterController::class, 'store'])
             ->name('articles.store');
 
-        /* Submit Draft */
         Route::post('/articles/{article}/submit', [WriterController::class, 'submit'])
             ->name('articles.submit');
 
-        /* Revise Article */
         Route::post('/articles/{article}/revise', [WriterController::class, 'revise'])
             ->name('articles.revise');
 
@@ -72,11 +109,9 @@ Route::middleware(['auth','role:editor'])
     ->name('editor.')
     ->group(function () {
 
-        /* Editor Dashboard */
         Route::get('/dashboard', [EditorController::class, 'dashboard'])
             ->name('dashboard');
 
-        /* Review Article */
         Route::get('/articles/{article}/review', function (Article $article) {
 
             return Inertia::render('Editor/Review', [
@@ -90,11 +125,9 @@ Route::middleware(['auth','role:editor'])
 
         })->name('articles.review');
 
-        /* Request Revision */
         Route::post('/articles/{article}/revision', [EditorController::class, 'requestRevision'])
             ->name('articles.requestRevision');
 
-        /* Publish Article */
         Route::post('/articles/{article}/publish', [EditorController::class, 'publish'])
             ->name('articles.publish');
 
@@ -112,11 +145,9 @@ Route::middleware(['auth','role:student'])
     ->name('student.')
     ->group(function () {
 
-        /* Student Dashboard */
         Route::get('/dashboard', [StudentController::class, 'dashboard'])
             ->name('dashboard');
 
-        /* Comment on Article */
         Route::post('/articles/{article}/comment', [StudentController::class, 'comment'])
             ->name('articles.comment');
 
@@ -131,7 +162,6 @@ Route::middleware(['auth','role:student'])
 
 Route::middleware(['auth'])->group(function () {
 
-    /* View Article */
     Route::get('/articles/{article}', function (Article $article) {
 
         return Inertia::render('Article/Show', [
@@ -146,7 +176,6 @@ Route::middleware(['auth'])->group(function () {
     })->name('articles.show');
 
 
-    /* Edit Article */
     Route::get('/articles/{article}/edit', function (Article $article) {
 
         return Inertia::render('Article/Edit', [
@@ -158,6 +187,29 @@ Route::middleware(['auth'])->group(function () {
         ]);
 
     })->middleware('role:writer')->name('articles.edit');
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Notifications
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    Route::post('/notifications/{id}/read', function ($id) {
+
+        $notification = DatabaseNotification::findOrFail($id);
+
+        if ($notification->notifiable_id === Auth::id()) {
+            $notification->markAsRead();
+        }
+
+        return back();
+
+    })->name('notifications.read');
 
 });
 

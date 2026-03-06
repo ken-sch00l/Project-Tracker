@@ -7,22 +7,36 @@ import {
     LinearScale,
     BarElement,
     ArcElement,
+    PointElement,
+    LineElement,
     Tooltip,
     Legend
 } from 'chart.js'
 
-import { Doughnut, Bar } from 'react-chartjs-2'
+import { Doughnut, Bar, Line } from 'react-chartjs-2'
 
 ChartJS.register(
     CategoryScale,
     LinearScale,
     BarElement,
     ArcElement,
+    PointElement,
+    LineElement,
     Tooltip,
     Legend
 )
 
-export default function Dashboard({ pending = [], needsRevision = [], stats = {} }) {
+export default function Dashboard({ pending = [], needsRevision = [], stats = {}, activity = [] }) {
+
+    const pendingSafe = pending ?? []
+    const revisionSafe = needsRevision ?? []
+    const activitySafe = activity ?? []
+
+    /*
+    --------------------------------
+    WORKFLOW DISTRIBUTION
+    --------------------------------
+    */
 
     const workflowData = {
         labels: ["Pending", "Needs Revision", "Published"],
@@ -41,6 +55,12 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
             }
         ]
     }
+
+    /*
+    --------------------------------
+    WORKFLOW OVERVIEW BAR
+    --------------------------------
+    */
 
     const reviewBarData = {
         labels: ["Pending", "Needs Revision", "Published", "Reviewed by You"],
@@ -61,6 +81,50 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
     const barOptions = {
         maintainAspectRatio:false,
         plugins:{legend:{display:false}}
+    }
+
+    /*
+    --------------------------------
+    PLATFORM ACTIVITY CHART
+    --------------------------------
+    */
+
+    const activityChartData = {
+        labels: activitySafe.map(a => a.month),
+        datasets: [
+
+            {
+                label: "Articles Submitted",
+                data: activitySafe.map(a => a.submitted),
+                borderColor: "#2563EB",
+                backgroundColor: "rgba(37,99,235,0.15)",
+                fill: true,
+                tension: 0.4
+            },
+
+            {
+                label: "Articles Published",
+                data: activitySafe.map(a => a.published),
+                borderColor: "#16A34A",
+                backgroundColor: "rgba(22,163,74,0.15)",
+                fill: true,
+                tension: 0.4
+            },
+
+            {
+                label: "Comments Posted",
+                data: activitySafe.map(a => a.comments),
+                borderColor: "#EA580C",
+                backgroundColor: "rgba(234,88,12,0.15)",
+                fill: true,
+                tension: 0.4
+            }
+
+        ]
+    }
+
+    const activityOptions = {
+        maintainAspectRatio:false
     }
 
     return (
@@ -100,6 +164,26 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
                         label="Reviewed by You"
                         color="#0F172A"
                     />
+
+                </div>
+
+
+                {/* PLATFORM ACTIVITY */}
+
+                <div className="bg-white border rounded-xl p-8 mb-14">
+
+                    <h3 className="text-xl font-serif mb-6">
+                        Platform Activity
+                    </h3>
+
+                    <div style={{height:"260px"}}>
+
+                        <Line
+                            data={activityChartData}
+                            options={activityOptions}
+                        />
+
+                    </div>
 
                 </div>
 
@@ -157,7 +241,7 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
 
                 <div className="grid md:grid-cols-3 gap-8 mb-14">
 
-                    {pending.map(article => (
+                    {pendingSafe.slice(0,6).map(article => (
 
                         <ArticleCard key={article.id} article={article}/>
 
@@ -174,7 +258,7 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
 
                 <div className="grid md:grid-cols-3 gap-8">
 
-                    {needsRevision.map(article => (
+                    {revisionSafe.slice(0,6).map(article => (
 
                         <ArticleCard key={article.id} article={article}/>
 
@@ -215,7 +299,6 @@ function ArticleCard({article}){
     )
 
 }
-
 
 
 function StatCard({ value, label, color }) {

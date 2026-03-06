@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Article;
 use App\Models\ArticleStatus;
 use App\Models\Category;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use App\Notifications\ArticleSubmittedNotification;
 
 class WriterController extends Controller
 {
@@ -64,18 +66,11 @@ class WriterController extends Controller
                 ];
             });
 
-        $categoryStats = Article::where('writer_id', $writerId)
-            ->join('categories','articles.category_id','=','categories.id')
-            ->selectRaw('categories.name as category, COUNT(*) as total')
-            ->groupBy('categories.name')
-            ->get();
-
         return Inertia::render('Writer/Dashboard', [
             'articles' => $articles,
             'stats' => $stats,
             'popularArticles' => $popularArticles,
-            'activity' => $activity,
-            'categoryStats' => $categoryStats
+            'activity' => $activity
         ]);
     }
 
@@ -112,7 +107,7 @@ class WriterController extends Controller
             ? $submittedStatus->id
             : $draftStatus->id;
 
-        Article::create($data);
+        $article = Article::create($data);
 
         return redirect()->route('writer.dashboard');
     }
@@ -125,6 +120,13 @@ class WriterController extends Controller
             $article->update([
                 'status_id' => $submitted->id
             ]);
+        }
+
+        // notify editors
+        $editors = User::role('editor')->get();
+
+        foreach ($editors as $editor) {
+            $editor->notify(new ArticleSubmittedNotification($article));
         }
 
         return redirect()->route('writer.dashboard');

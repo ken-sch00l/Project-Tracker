@@ -8,26 +8,40 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 export default function Edit({ mustVerifyEmail, status }) {
 
     const { auth } = usePage().props
-    const role = auth?.user?.roles?.[0]?.name
 
-    const dashboardRoute = {
-        writer: 'writer.dashboard',
-        editor: 'editor.dashboard',
-        student: 'student.dashboard'
-    }[role]
+    // safer role detection
+    const role = auth?.user?.roles?.length
+        ? auth.user.roles[0].name
+        : null
 
-    const dashboardLabel = {
-        writer: 'Writer Dashboard',
-        editor: 'Editor Dashboard',
-        student: 'Student Dashboard'
-    }[role]
+    const dashboardRoute = role === 'writer'
+        ? 'writer.dashboard'
+        : role === 'editor'
+        ? 'editor.dashboard'
+        : role === 'student'
+        ? 'student.dashboard'
+        : null
+
+    const dashboardLabel = role === 'writer'
+        ? 'Writer Dashboard'
+        : role === 'editor'
+        ? 'Editor Dashboard'
+        : role === 'student'
+        ? 'Student Dashboard'
+        : 'Home'
 
     const goBack = () => {
+
         if (dashboardRoute) {
+
             router.visit(route(dashboardRoute))
+
         } else {
+
             router.visit('/')
+
         }
+
     }
 
     return (

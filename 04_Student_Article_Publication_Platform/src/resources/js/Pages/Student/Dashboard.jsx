@@ -1,7 +1,25 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
-import { Head, Link } from '@inertiajs/react'
+import { Head, Link, router } from '@inertiajs/react'
+import { useState } from 'react'
 
-export default function Dashboard({ articles = [], stats = {}, popularArticles = [] }) {
+export default function Dashboard({
+    articles = [],
+    stats = {},
+    popularArticles = [],
+    search = ""
+}) {
+
+    const [searchTerm, setSearchTerm] = useState(search ?? "")
+
+    const handleSearch = (e) => {
+
+        e.preventDefault()
+
+        router.get(route('student.dashboard'), {
+            search: searchTerm
+        })
+
+    }
 
     return (
 
@@ -11,7 +29,7 @@ export default function Dashboard({ articles = [], stats = {}, popularArticles =
 
             <Head title="Student Dashboard" />
 
-            <div className="max-w-6xl mx-auto px-12 pb-20">
+            <div className="max-w-7xl mx-auto px-12 pb-20">
 
 
                 {/* STATISTICS */}
@@ -45,16 +63,16 @@ export default function Dashboard({ articles = [], stats = {}, popularArticles =
                     Popular Articles
                 </h3>
 
-                <div className="grid md:grid-cols-3 gap-8 mb-16">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
 
-                    {popularArticles.map(article => (
+                    {(popularArticles ?? []).map(article => (
 
                         <div
                             key={article.id}
                             className="bg-white border border-gray-200 rounded-xl p-8 hover:shadow-lg transition"
                         >
 
-                            <h4 className="text-lg font-semibold mb-2">
+                            <h4 className="text-lg font-semibold mb-2 line-clamp-2">
                                 {article.title}
                             </h4>
 
@@ -78,6 +96,33 @@ export default function Dashboard({ articles = [], stats = {}, popularArticles =
                     ))}
 
                 </div>
+
+
+
+                {/* SEARCH BAR */}
+
+                <form onSubmit={handleSearch} className="mb-10">
+
+                    <div className="flex gap-3">
+
+                        <input
+                            type="text"
+                            placeholder="Search articles..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="border border-gray-300 rounded-md px-4 py-2 w-full"
+                        />
+
+                        <button
+                            type="submit"
+                            className="bg-[#0F172A] text-white px-6 py-2 rounded-md hover:bg-[#1E293B]"
+                        >
+                            Search
+                        </button>
+
+                    </div>
+
+                </form>
 
 
 
@@ -105,7 +150,7 @@ export default function Dashboard({ articles = [], stats = {}, popularArticles =
                                 className="bg-white border border-gray-200 rounded-xl p-8 hover:shadow-lg transition"
                             >
 
-                                <h3 className="text-lg font-semibold mb-2">
+                                <h3 className="text-lg font-semibold mb-2 line-clamp-2">
                                     {article.title}
                                 </h3>
 

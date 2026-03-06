@@ -10,6 +10,7 @@ use Inertia\Inertia;
 
 class StudentController extends Controller
 {
+
     /*
     |--------------------------------------------------------------------------
     | Student Dashboard
@@ -19,11 +20,17 @@ class StudentController extends Controller
     public function dashboard()
     {
 
+        $search = request('search');
+
         $articles = Article::whereHas('status', function ($q) {
             $q->where('name', 'published');
         })
+        ->when($search, function ($query, $search) {
+            $query->where('title', 'like', "%{$search}%");
+        })
         ->with(['writer','category','status'])
         ->latest()
+        ->take(9) // LIMIT number of article cards shown
         ->get();
 
 
@@ -58,14 +65,15 @@ class StudentController extends Controller
         ->with(['writer'])
         ->withCount('comments')
         ->orderByDesc('comments_count')
-        ->take(5)
+        ->take(5) // LIMIT trending articles
         ->get();
 
 
         return Inertia::render('Student/Dashboard', [
             'articles' => $articles,
             'stats' => $stats,
-            'popularArticles' => $popularArticles
+            'popularArticles' => $popularArticles,
+            'search' => $search
         ]);
     }
 
@@ -79,6 +87,7 @@ class StudentController extends Controller
 
     public function comment(Request $request, Article $article)
     {
+
         $data = $request->validate([
             'content' => 'required|string'
         ]);

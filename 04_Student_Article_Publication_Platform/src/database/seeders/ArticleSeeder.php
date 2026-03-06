@@ -15,43 +15,47 @@ class ArticleSeeder extends Seeder
         $writers = User::role('writer')->get();
         $editors = User::role('editor')->get();
 
-        // if no writer/editor, skip
         if ($writers->isEmpty() || $editors->isEmpty()) {
             return;
         }
 
         $statuses = \App\Models\ArticleStatus::all()->keyBy('name');
 
-        // create a mix of draft, submitted and published articles
         Article::factory()
-            ->count(8)
+            ->count(60)   // more demo data
             ->make()
             ->each(function ($article) use ($writers, $editors, $statuses) {
+
                 $article->writer()->associate($writers->random());
                 $article->editor()->associate($editors->random());
 
-                // pick a status: most are draft, some submitted, some published
-                $pick = rand(1, 100);
+                $pick = rand(1,100);
+
                 if ($pick <= 60) {
                     $article->status_id = $statuses->get('draft')->id;
-                } elseif ($pick <= 85) {
+                }
+                elseif ($pick <= 85) {
                     $article->status_id = $statuses->get('submitted')->id;
-                } else {
+                }
+                else {
                     $article->status_id = $statuses->get('published')->id;
                 }
 
                 $article->category_id = \App\Models\Category::inRandomOrder()->first()->id ?? 1;
+
                 $article->save();
 
-                // create revisions for those that need it
                 if ($article->status_id === ($statuses->get('needs_revision')->id ?? null)) {
                     Revision::factory()->for($article)->create();
                 }
 
-                // attach a couple comments for published articles
                 if ($article->status_id === ($statuses->get('published')->id ?? null)) {
-                    Comment::factory()->count(rand(1,3))->for($article)->create();
+                    Comment::factory()
+                        ->count(rand(3,8))
+                        ->for($article)
+                        ->create();
                 }
+
             });
     }
 }

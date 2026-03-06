@@ -20,16 +20,24 @@ class RevisionRequestedNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['mail'];
+        return ['mail','database'];
     }
 
     public function toMail($notifiable)
     {
         return (new MailMessage)
             ->subject('Revision Requested')
-            ->line('A revision has been requested for your article: ' . $this->revision->article->title)
+            ->line('A revision has been requested for your article: '.$this->revision->article->title)
             ->line('Editor Feedback:')
             ->line($this->revision->comments ?? 'No comments provided.')
             ->action('View Article', route('articles.show', $this->revision->article->id));
+    }
+
+    public function toDatabase($notifiable)
+    {
+        return [
+            'message' => 'Revision requested for: '.$this->revision->article->title,
+            'url' => route('articles.show', $this->revision->article->id)
+        ];
     }
 }

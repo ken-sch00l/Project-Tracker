@@ -13,7 +13,7 @@ import {
     Legend
 } from 'chart.js'
 
-import { Line, Bar, Doughnut, Pie } from 'react-chartjs-2'
+import { Line, Doughnut, Pie } from 'react-chartjs-2'
 
 ChartJS.register(
     CategoryScale,
@@ -29,7 +29,6 @@ ChartJS.register(
 export default function Dashboard({
     articles = [],
     stats = {},
-    popularArticles = [],
     activity = [],
     categoryStats = []
 }) {
@@ -39,15 +38,7 @@ export default function Dashboard({
     }
 
     const activitySafe = activity ?? []
-    const popularSafe = popularArticles ?? []
     const categorySafe = categoryStats ?? []
-
-    const truncate = (text, length = 25) => {
-        if (!text) return ""
-        return text.length > length
-            ? text.substring(0, length) + "..."
-            : text
-    }
 
     /*
     ---------------------------
@@ -96,30 +87,6 @@ export default function Dashboard({
                 ]
             }
         ]
-    }
-
-    /*
-    ---------------------------
-    Engagement Chart
-    ---------------------------
-    */
-
-    const engagementData = {
-        labels: popularSafe.map(a => truncate(a.title)),
-        datasets:[
-            {
-                label:"Comments",
-                data: popularSafe.map(a => a.comments_count),
-                backgroundColor:"#0F172A"
-            }
-        ]
-    }
-
-    const engagementOptions = {
-        indexAxis:"y",
-        maintainAspectRatio:false,
-        plugins:{legend:{display:false}},
-        scales:{x:{ticks:{precision:0}}}
     }
 
     /*
@@ -188,7 +155,7 @@ export default function Dashboard({
 
                 {/* ANALYTICS */}
 
-                <div className="grid md:grid-cols-3 gap-8 mb-14">
+                <div className="grid md:grid-cols-2 gap-8 mb-14">
 
                     {/* STATUS */}
 
@@ -222,26 +189,6 @@ export default function Dashboard({
                             <div style={{width:"180px"}}>
                                 <Pie data={categoryData}/>
                             </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* ENGAGEMENT */}
-
-                    <div className="bg-white border rounded-xl p-6">
-
-                        <h3 className="font-serif text-lg mb-4">
-                            Engagement
-                        </h3>
-
-                        <div style={{height:"200px"}}>
-
-                            {popularSafe.length === 0
-                                ? <p className="text-gray-500">No engagement data yet.</p>
-                                : <Bar data={engagementData} options={engagementOptions}/>
-                            }
 
                         </div>
 
@@ -347,12 +294,6 @@ export default function Dashboard({
     )
 }
 
-
-/*
---------------------------------
-STAT CARD
---------------------------------
-*/
 
 function StatCard({ title, value }) {
 
