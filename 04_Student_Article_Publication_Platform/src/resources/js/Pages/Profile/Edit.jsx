@@ -79,6 +79,15 @@ export default function Edit({ mustVerifyEmail, status }) {
                     ← Back to {dashboardLabel}
                 </button>
 
+                {roles.includes('student') && (
+                    <button
+                        onClick={() => router.visit(route('student.favorites'))}
+                        className="ml-3 mb-6 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+                    >
+                        Saved Articles
+                    </button>
+                )}
+
                 <div className="space-y-10">
 
                     {/* DEMO ROLE NAV (test@gmail.com only) */}
@@ -89,7 +98,7 @@ export default function Edit({ mustVerifyEmail, status }) {
                             <div className="flex gap-2 flex-wrap">
                                 <button
                                     type="button"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                    className="px-4 py-2 bg-[#0F172A] text-white rounded-md hover:bg-[#1E293B]"
                                     onClick={() => router.visit(route('writer.dashboard'))}
                                 >
                                     Writer Dashboard

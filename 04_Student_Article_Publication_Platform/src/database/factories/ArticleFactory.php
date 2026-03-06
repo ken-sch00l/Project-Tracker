@@ -49,7 +49,11 @@ class ArticleFactory extends Factory
 
         ];
 
-        $article = $this->faker->unique()->randomElement($articles);
+        $article = $this->faker->randomElement($articles);
+
+        // Prefer existing demo accounts and published status for sample data
+        $demoWriter = User::where('email', 'test@gmail.com')->first();
+        $publishedStatus = ArticleStatus::where('name', 'published')->first();
 
         return [
 
@@ -57,9 +61,12 @@ class ArticleFactory extends Factory
 
             'content' => $article['content'],
 
-            'status_id' => ArticleStatus::factory(),
+            'status_id' => $publishedStatus?->id ?? ArticleStatus::firstOrCreate(
+                ['name' => 'published'],
+                ['label' => 'Published']
+            )->id,
 
-            'writer_id' => User::factory(),
+            'writer_id' => $demoWriter?->id ?? User::factory(),
 
             'editor_id' => null,
 

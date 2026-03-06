@@ -114,7 +114,17 @@ export default function Dashboard({
     return (
 
         <AuthenticatedLayout
-            header={<h2 className="text-4xl font-serif">Writer Dashboard</h2>}
+            header={
+                <div className="flex justify-between items-center w-full">
+                    <h2 className="text-4xl font-serif">Writer Dashboard</h2>
+                    <Link
+                        href={route('writer.analytics')}
+                        className="bg-[#0F172A] text-white px-4 py-2 rounded-md hover:bg-[#1E293B] font-medium text-sm"
+                    >
+                        📊 View Analytics
+                    </Link>
+                </div>
+            }
         >
 
             <Head title="Writer Dashboard" />
@@ -259,7 +269,7 @@ export default function Dashboard({
 
                                         <Link
                                             href={`/articles/${article.id}/edit`}
-                                            className="text-sm px-4 py-2 bg-blue-500 text-white rounded-md"
+                                            className="text-sm px-4 py-2 bg-[#0F172A] text-white rounded-md"
                                         >
                                             Edit
                                         </Link>

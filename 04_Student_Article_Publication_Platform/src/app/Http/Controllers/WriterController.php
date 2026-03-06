@@ -155,4 +155,40 @@ class WriterController extends Controller
 
         return redirect()->route('writer.dashboard');
     }
+
+    public function analytics()
+    {
+        $writerId = Auth::id();
+
+        // Get all published articles with engagement metrics
+        $publishedArticles = Article::where('writer_id', $writerId)
+            ->whereHas('status', fn($q) => $q->where('name', 'published'))
+            ->with(['category'])
+            ->withCount('comments')
+            ->get()
+            ->map(function ($article) {
+                return [
+                    'id' => $article->id,
+                    'title' => $article->title,
+                    'views' => $article->views_count,
+                    'comments' => $article->comments_count,
+                    'engagement' => ($article->views_count + $article->comments_count),
+                    'created_at' => $article->created_at->format('M d, Y'),
+                ];
+            })
+            ->sortByDesc('engagement')
+            ->values();
+
+        // Overall stats
+        $stats = [
+            'total_views' => Article::where('writer_id', $writerId)->sum('views_count'),
+            'total_comments' => Article::where('writer_id', $writerId)->withCount('comments')->get()->sum('comments_count'),
+            'total_articles' => Article::where('writer_id', $writerId)->whereHas('status', fn($q) => $q->where('name', 'published'))->count(),
+        ];
+
+        return Inertia::render('Writer/Analytics', [
+            'publishedArticles' => $publishedArticles,
+            'stats' => $stats
+        ]);
+    }
 }

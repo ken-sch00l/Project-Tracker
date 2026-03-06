@@ -57,5 +57,17 @@ class ArticleSeeder extends Seeder
                 }
 
             });
+
+        // Ensure some demo articles are always published by the demo writer user
+        $demoWriter = User::where('email', 'test@gmail.com')->first();
+        if ($demoWriter) {
+            Article::factory()
+                ->count(10)
+                ->create([
+                    'writer_id' => $demoWriter->id,
+                    'editor_id' => $editors->random()->id,
+                    'status_id' => $statuses->get('published')->id,
+                ]);
+        }
     }
 }

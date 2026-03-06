@@ -4,13 +4,15 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WriterController;
 use App\Http\Controllers\EditorController;
 use App\Http\Controllers\StudentController;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Article;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Notifications\DatabaseNotification;
+use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\CommentModerationController;
+use App\Http\Controllers\ThemeController;
 
 Route::aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
 
@@ -89,6 +91,9 @@ Route::middleware(['auth','role:writer'])
         Route::get('/dashboard', [WriterController::class, 'dashboard'])
             ->name('dashboard');
 
+        Route::get('/analytics', [WriterController::class, 'analytics'])
+            ->name('analytics');
+
         Route::get('/articles/create', [WriterController::class, 'create'])
             ->name('articles.create');
 
@@ -115,6 +120,14 @@ Route::middleware(['auth','role:editor'])
     ->name('editor.')
     ->group(function () {
 
+        // debug helper (remove before deploy)
+        Route::get('/debug-published', function () {
+            $ids = App\Models\Article::whereHas('status', function ($q) {
+                $q->where('name','published');
+            })->pluck('id');
+            return response()->json(['published_ids' => $ids]);
+        });
+
         Route::get('/dashboard', [EditorController::class, 'dashboard'])
             ->name('dashboard');
 
@@ -137,6 +150,16 @@ Route::middleware(['auth','role:editor'])
         Route::post('/articles/{article}/publish', [EditorController::class, 'publish'])
             ->name('articles.publish');
 
+        // Comment moderation
+        Route::post('/comments/{comment}/flag', [CommentModerationController::class, 'flag'])
+            ->name('comments.flag');
+        Route::post('/comments/{comment}/approve', [CommentModerationController::class, 'approve'])
+            ->name('comments.approve');
+        Route::post('/comments/{comment}/reject', [CommentModerationController::class, 'reject'])
+            ->name('comments.reject');
+        Route::post('/comments/{comment}/pin', [CommentModerationController::class, 'pin'])
+            ->name('comments.pin');
+
 });
 
 
@@ -153,6 +176,9 @@ Route::middleware(['auth','role:student'])
 
         Route::get('/dashboard', [StudentController::class, 'dashboard'])
             ->name('dashboard');
+
+        Route::get('/favorites', [StudentController::class, 'favorites'])
+            ->name('favorites');
 
         Route::post('/articles/{article}/comment', [StudentController::class, 'comment'])
             ->name('articles.comment');
@@ -186,13 +212,27 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
     Route::get('/articles/{article}', function (Article $article) {
 
+        // Increment view count
+        $article->increment('views_count');
+
+        // Get related articles from same category
+        $relatedArticles = Article::whereHas('status', function ($q) {
+            $q->where('name', 'published');
+        })
+            ->where('category_id', $article->category_id)
+            ->where('id', '!=', $article->id)
+            ->with(['writer', 'category', 'status'])
+            ->limit(3)
+            ->get();
+
         return Inertia::render('Article/Show', [
             'article' => $article->load([
                 'writer',
                 'category',
                 'status',
                 'comments.student'
-            ])
+            ]),
+            'relatedArticles' => $relatedArticles
         ]);
 
     })->name('articles.show');
@@ -209,6 +249,12 @@ Route::middleware(['auth'])->group(function () {
         ]);
 
     })->middleware('role:writer')->name('articles.edit');
+
+    // Favorites
+    Route::post('/articles/{article}/favorite', [FavoriteController::class, 'toggle'])
+        ->name('articles.favorite');
+    Route::get('/articles/{article}/is-favorited', [FavoriteController::class, 'isFavorited'])
+        ->name('articles.is-favorited');
 
 });
 
@@ -252,6 +298,9 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/profile', [ProfileController::class, 'destroy'])
         ->name('profile.destroy');
+
+    Route::post('/theme/toggle', [ThemeController::class, 'toggle'])
+        ->name('theme.toggle');
 
 });
 

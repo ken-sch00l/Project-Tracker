@@ -31,6 +31,17 @@ class EditorController extends Controller
         ->latest()
         ->get();
 
+        // all published articles along with the editor who published them
+        $published = Article::whereHas('status', function ($q) {
+            $q->where('name', 'published');
+        })
+        ->with(['writer','editor','category','status'])
+        ->latest()
+        ->get();
+
+        // debug: log how many published articles we're sending
+        logger()->info('editor dashboard published count', ['count' => $published->count()]);
+
 
         /*
         -----------------------------------------
@@ -78,7 +89,7 @@ class EditorController extends Controller
             ->groupBy('month')
             ->pluck('total','month');
 
-        $published = Article::whereHas('status', fn($q)=>$q->where('name','published'))
+        $publishedActivity = Article::whereHas('status', fn($q)=>$q->where('name','published'))
             ->selectRaw("{$month} as month, COUNT(*) as total")
             ->groupBy('month')
             ->pluck('total','month');
@@ -87,12 +98,12 @@ class EditorController extends Controller
             ->groupBy('month')
             ->pluck('total','month');
 
-        $activity = collect($months)->map(function($name,$num) use ($submitted,$published,$comments){
+        $activity = collect($months)->map(function($name,$num) use ($submitted,$publishedActivity,$comments){
 
             return [
                 'month'=>$name,
                 'submitted'=>$submitted[$num] ?? 0,
-                'published'=>$published[$num] ?? 0,
+                'published'=>$publishedActivity[$num] ?? 0,
                 'comments'=>$comments[$num] ?? 0
             ];
 
@@ -102,6 +113,7 @@ class EditorController extends Controller
         return Inertia::render('Editor/Dashboard', [
             'pending' => $pending,
             'needsRevision' => $needsRevision,
+            'published' => $published,
             'stats' => $stats,
             'activity' => $activity
         ]);

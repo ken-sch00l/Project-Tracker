@@ -68,4 +68,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Revision::class, 'editor_id');
     }
+
+    public function favorites()
+    {
+        return $this->hasMany(ArticleFavorite::class);
+    }
+
+    public function favoriteArticles()
+    {
+        return $this->belongsToMany(Article::class, 'article_favorites');
+    }
 }

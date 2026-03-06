@@ -26,56 +26,30 @@ ChartJS.register(
     Legend
 )
 
-export default function Dashboard({ pending = [], needsRevision = [], stats = {}, activity = [] }) {
+export default function Dashboard({ pending = [], needsRevision = [], published = [], stats = {}, activity = [] }) {
 
     const pendingSafe = pending ?? []
     const revisionSafe = needsRevision ?? []
+    const publishedSafe = published ?? []
     const activitySafe = activity ?? []
 
-    /*
-    --------------------------------
-    WORKFLOW DISTRIBUTION
-    --------------------------------
-    */
-
-    const workflowData = {
-        labels: ["Pending", "Needs Revision", "Published"],
-        datasets: [
-            {
-                data: [
-                    stats.pending_reviews ?? 0,
-                    stats.needs_revision ?? 0,
-                    stats.published_articles ?? 0
-                ],
-                backgroundColor: [
-                    "#2563EB",
-                    "#EA580C",
-                    "#16A34A"
-                ]
-            }
-        ]
-    }
-
-    /*
-    --------------------------------
-    WORKFLOW OVERVIEW BAR
-    --------------------------------
-    */
-
-    const reviewBarData = {
-        labels: ["Pending", "Needs Revision", "Published", "Reviewed by You"],
-        datasets: [
-            {
-                label: "Articles",
-                data: [
-                    stats.pending_reviews ?? 0,
-                    stats.needs_revision ?? 0,
-                    stats.published_articles ?? 0,
-                    stats.articles_reviewed ?? 0
-                ],
-                backgroundColor: "#0F172A"
-            }
-        ]
+    // group published articles by author/editor who published them
+    let publishedBy = {};
+    try {
+        if (Array.isArray(publishedSafe)) {
+            publishedBy = publishedSafe.reduce((acc, art) => {
+                // Group published articles by the writer (falls back to editor if writer is missing)
+                const key = art.writer?.name || art.editor?.name || 'Unknown';
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(art);
+                return acc;
+            }, {});
+        } else {
+            console.error('expected publishedSafe to be array, got', publishedSafe);
+        }
+    } catch (err) {
+        console.error('error grouping published articles', err);
+        publishedBy = {};
     }
 
     const barOptions = {
@@ -190,47 +164,7 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
 
                 {/* ANALYTICS */}
 
-                <div className="grid md:grid-cols-2 gap-8 mb-14">
-
-                    {/* WORKFLOW PIE */}
-
-                    <div className="bg-white border rounded-xl p-8">
-
-                        <h3 className="text-xl font-serif mb-4">
-                            Workflow Distribution
-                        </h3>
-
-                        <div className="flex justify-center" style={{height:"220px"}}>
-
-                            <div style={{width:"200px"}}>
-                                <Doughnut data={workflowData}/>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* REVIEW ACTIVITY */}
-
-                    <div className="bg-white border rounded-xl p-8">
-
-                        <h3 className="text-xl font-serif mb-4">
-                            Article Workflow Overview
-                        </h3>
-
-                        <div style={{height:"220px"}}>
-
-                            <Bar
-                                data={reviewBarData}
-                                options={barOptions}
-                            />
-
-                        </div>
-
-                    </div>
-
-                </div>
+                {/* charts removed per request */}
 
 
                 {/* PENDING ARTICLES */}
@@ -265,6 +199,24 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
                     ))}
 
                 </div>
+
+
+                {/* PUBLISHED ARTICLES */}
+
+                <h3 className="text-2xl font-serif mb-6 mt-12">
+                    Published Articles
+                </h3>
+
+                {Object.entries(publishedBy || {}).map(([publisher, arts]) => (
+                    <div key={publisher} className="mb-10">
+                        <h4 className="text-xl font-semibold mb-4">{publisher}</h4>
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {arts.map(article => (
+                                <ArticleCard key={article.id} article={article} />
+                            ))}
+                        </div>
+                    </div>
+                ))}
 
             </div>
 

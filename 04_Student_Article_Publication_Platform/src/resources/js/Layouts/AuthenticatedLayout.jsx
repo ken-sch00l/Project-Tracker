@@ -9,6 +9,8 @@ const { auth } = page.props
 const user = auth.user
 const component = page.component
 
+// Dark mode removed — always use the light theme and consistent button colors.
+
 // Determine the current “active” role from the current Inertia page/component.
 // This allows multi-role demo accounts to see role-specific nav + notifications.
 // Try to match the component first (e.g., "Editor/Dashboard") but fall back to
@@ -85,11 +87,11 @@ const markAsRead = (id, url) => {
 
 return (
 
-    <div className="min-h-screen bg-[#F8F6F1]">
+    <div className={`min-h-screen bg-[#F8F6F1]`}>
 
         {/* NAVBAR */}
 
-        <nav className="border-b border-gray-200 bg-white">
+        <nav className={`border-b border-gray-200 bg-white`}>
 
             <div className="max-w-7xl mx-auto px-12 py-6 flex justify-between items-center">
 
@@ -110,9 +112,7 @@ return (
                         <Link
                             key={link.role}
                             href={route(link.route)}
-                            className={
-                                `hover:text-[#C6A75E] ${link.role === role ? 'font-semibold' : ''}`
-                            }
+                            className={`hover:text-[#C6A75E] ${link.role === role ? 'font-semibold' : ''} text-gray-800`}
                         >
                             {link.label}
                         </Link>
@@ -172,6 +172,8 @@ return (
 
                     </div>
 
+                    { /* Theme toggle removed per user request */ }
+
                     <Link
                         href={route('profile.edit')}
                         className="hover:text-[#C6A75E]"
@@ -198,15 +200,28 @@ return (
 
         {header && (
 
-            <header className="max-w-7xl mx-auto px-12 py-10">
+                    <header className="max-w-7xl mx-auto px-12 py-10">
 
-                <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
 
-                    {header}
+                            <div className="flex items-center text-gray-900 dark:text-gray-200">
+                                { /* Hide back button on root / welcome pages */ }
+                                {(!(page.url === '/' || (component || '').toLowerCase().includes('welcome'))) && (
+                                    <button
+                                        onClick={() => window.history.back()}
+                                        className="mr-4 text-sm px-3 py-1 rounded bg-transparent hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
+                                        aria-label="Go back"
+                                    >
+                                        ← Back
+                                    </button>
+                                )}
 
-                </div>
+                                {header}
+                            </div>
 
-            </header>
+                        </div>
+
+                    </header>
 
         )}
 

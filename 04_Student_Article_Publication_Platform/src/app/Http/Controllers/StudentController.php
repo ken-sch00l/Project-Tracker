@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\Comment;
+use App\Models\ArticleFavorite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -40,15 +41,19 @@ class StudentController extends Controller
         |--------------------------------------------------------------------------
         */
 
+        $userId = Auth::id();
+
         $stats = [
 
             'articles_available' => Article::whereHas('status', function ($q) {
                 $q->where('name','published');
             })->count(),
 
-            'comments_posted' => Comment::where('student_id', Auth::id())->count(),
+            'comments_posted' => Comment::where('student_id', $userId)->count(),
 
             'total_comments' => Comment::count(),
+
+            'favorites_count' => ArticleFavorite::where('user_id', $userId)->count(),
 
         ];
 
@@ -77,6 +82,25 @@ class StudentController extends Controller
         ]);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Student Favorites
+    |--------------------------------------------------------------------------
+    */
+
+    public function favorites()
+    {
+        $favorites = ArticleFavorite::where('user_id', Auth::id())
+            ->with(['article.writer', 'article.category', 'article.status'])
+            ->latest()
+            ->paginate(12);
+
+        $favoriteArticles = $favorites->map(fn($fav) => $fav->article);
+
+        return Inertia::render('Student/Favorites', [
+            'favoriteArticles' => $favoriteArticles
+        ]);
+    }
 
 
     /*
