@@ -33,22 +33,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-
-        if ($user->hasRole('writer')) {
-            return redirect()->route('writer.dashboard');
-        }
-
-        if ($user->hasRole('editor')) {
-            return redirect()->route('editor.dashboard');
-        }
-
-        if ($user->hasRole('student')) {
-            return redirect()->route('student.dashboard');
-        }
-
-        return redirect('/');
+        return redirect()->intended(route('dashboard'));
     }
 
     /**

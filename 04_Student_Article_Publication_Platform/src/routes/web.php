@@ -43,15 +43,21 @@ Route::get('/', function () {
     |------------------------------------------
     */
 
-    $topWriters = User::role('writer')
-        ->withCount(['writtenArticles as published_count' => function ($q) {
-            $q->whereHas('status', function ($s) {
-                $s->where('name', 'published');
-            });
-        }])
-        ->orderByDesc('published_count')
-        ->take(5)
-        ->get();
+    $topWriters = collect();
+
+    try {
+        $topWriters = User::role('writer')
+            ->withCount(['writtenArticles as published_count' => function ($q) {
+                $q->whereHas('status', function ($s) {
+                    $s->where('name', 'published');
+                });
+            }])
+            ->orderByDesc('published_count')
+            ->take(5)
+            ->get();
+    } catch (\Spatie\Permission\Exceptions\RoleDoesNotExist $e) {
+        // If roles are not seeded yet (e.g., in tests), skip leaderboard.
+    }
 
 
     return Inertia::render('Welcome', [
@@ -161,7 +167,23 @@ Route::middleware(['auth','role:student'])
 */
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
 
+        if ($user->hasRole('editor')) {
+            return redirect()->route('editor.dashboard');
+        }
+
+        if ($user->hasRole('writer')) {
+            return redirect()->route('writer.dashboard');
+        }
+
+        if ($user->hasRole('student')) {
+            return redirect()->route('student.dashboard');
+        }
+
+        return redirect()->route('profile.edit');
+    })->name('dashboard');
     Route::get('/articles/{article}', function (Article $article) {
 
         return Inertia::render('Article/Show', [

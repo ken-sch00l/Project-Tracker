@@ -7,6 +7,7 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
+        role: 'student',
     })
 
     const [visible, setVisible] = useState(false)
@@ -47,6 +48,21 @@ export default function Register() {
                         onChange={(e) => setData('email', e.target.value)}
                         required
                     />
+
+                    <div className="w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Role
+                        </label>
+                        <select
+                            className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:border-[#0F172A] transition duration-200"
+                            value={data.role}
+                            onChange={(e) => setData('role', e.target.value)}
+                        >
+                            <option value="student">Student</option>
+                            <option value="writer">Writer</option>
+                            <option value="editor">Editor</option>
+                        </select>
+                    </div>
 
                     <input
                         type="password"

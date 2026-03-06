@@ -84,4 +84,26 @@ class WriterControllerTest extends TestCase
         $article = \App\Models\Article::where('title', 'Submit Test')->first();
         $this->assertEquals('submitted', $article->status->name);
     }
+
+    public function test_writer_can_revise_their_article()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('writer');
+
+        $status = ArticleStatus::factory()->create(['name' => 'draft']);
+        $category = \App\Models\Category::factory()->create();
+
+        $article = \App\Models\Article::factory()->create([
+            'status_id' => $status->id,
+            'writer_id' => $user->id,
+            'category_id' => $category->id,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('writer.articles.revise', $article->id), [
+            'content' => 'Updated content',
+        ]);
+
+        $response->assertRedirect(route('writer.dashboard'));
+        $this->assertEquals('Updated content', $article->fresh()->content);
+    }
 }

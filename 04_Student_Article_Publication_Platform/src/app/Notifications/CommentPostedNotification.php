@@ -35,6 +35,7 @@ class CommentPostedNotification extends Notification
     public function toDatabase($notifiable)
     {
         return [
+            'type' => 'comment_posted',
             'message' => 'New comment on: '.$this->comment->article->title,
             'url' => route('articles.show', $this->comment->article->id)
         ];

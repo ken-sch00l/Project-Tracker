@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Notifications\ArticleSubmittedNotification;
 
@@ -46,8 +47,12 @@ class WriterController extends Controller
             ->limit(5)
             ->get();
 
+        $month = DB::getDriverName() === 'sqlite'
+            ? "strftime('%m', created_at)"
+            : 'MONTH(created_at)';
+
         $activity = Article::where('writer_id', $writerId)
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->selectRaw("{$month} as month, COUNT(*) as total")
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -85,6 +90,8 @@ class WriterController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Article::class);
+
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
@@ -114,6 +121,8 @@ class WriterController extends Controller
 
     public function submit(Article $article)
     {
+        $this->authorize('submit', $article);
+
         $submitted = ArticleStatus::where('name','submitted')->first();
 
         if ($submitted) {
@@ -134,6 +143,8 @@ class WriterController extends Controller
 
     public function revise(Request $request, Article $article)
     {
+        $this->authorize('revise', $article);
+
         $data = $request->validate([
             'content' => 'required|string'
         ]);

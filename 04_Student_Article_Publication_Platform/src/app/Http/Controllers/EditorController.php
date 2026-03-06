@@ -8,6 +8,7 @@ use App\Models\Revision;
 use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class EditorController extends Controller
@@ -68,17 +69,21 @@ class EditorController extends Controller
             9=>'Sep',10=>'Oct',11=>'Nov',12=>'Dec'
         ];
 
+        $month = DB::getDriverName() === 'sqlite'
+            ? "strftime('%m', created_at)"
+            : 'MONTH(created_at)';
+
         $submitted = Article::whereHas('status', fn($q)=>$q->where('name','submitted'))
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->selectRaw("{$month} as month, COUNT(*) as total")
             ->groupBy('month')
             ->pluck('total','month');
 
         $published = Article::whereHas('status', fn($q)=>$q->where('name','published'))
-            ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+            ->selectRaw("{$month} as month, COUNT(*) as total")
             ->groupBy('month')
             ->pluck('total','month');
 
-        $comments = Comment::selectRaw('MONTH(created_at) as month, COUNT(*) as total')
+        $comments = Comment::selectRaw("{$month} as month, COUNT(*) as total")
             ->groupBy('month')
             ->pluck('total','month');
 
@@ -105,6 +110,8 @@ class EditorController extends Controller
 
     public function review(Article $article)
     {
+        $this->authorize('view', $article);
+
         return Inertia::render('Editor/Review', [
             'article' => $article->load(['writer','category','status','revisions'])
         ]);
@@ -113,6 +120,8 @@ class EditorController extends Controller
 
     public function requestRevision(Request $request, Article $article)
     {
+        $this->authorize('requestRevision', $article);
+
         $data = $request->validate([
             'comments' => 'required|string'
         ]);
@@ -144,6 +153,8 @@ class EditorController extends Controller
 
     public function publish(Article $article)
     {
+        $this->authorize('publish', $article);
+
         $published = ArticleStatus::firstOrCreate(
             ['name' => 'published'],
             ['label' => 'Published']
@@ -157,6 +168,14 @@ class EditorController extends Controller
         if ($article->writer) {
             $article->writer->notify(
                 new \App\Notifications\ArticlePublishedNotification($article)
+            );
+        }
+
+        // Notify all students when a new article is published.
+        $students = \App\Models\User::role('student')->get();
+        foreach ($students as $student) {
+            $student->notify(
+                new \App\Notifications\NewArticlePublishedNotification($article)
             );
         }
 

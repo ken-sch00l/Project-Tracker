@@ -34,6 +34,7 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => 'nullable|string|in:writer,editor,student',
         ]);
 
         $user = User::create([
@@ -41,6 +42,15 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        if ($role = $request->input('role')) {
+            \Spatie\Permission\Models\Role::firstOrCreate(['name' => $role]);
+            $user->assignRole($role);
+        } else {
+            // default to student role
+            \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'student']);
+            $user->assignRole('student');
+        }
 
         event(new Registered($user));
 

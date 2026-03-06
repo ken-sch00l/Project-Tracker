@@ -35,6 +35,7 @@ class ArticleSubmittedNotification extends Notification
     public function toDatabase($notifiable)
     {
         return [
+            'type' => 'article_submitted',
             'message' => 'New article submitted: '.$this->article->title,
             'url' => route('editor.articles.review', $this->article->id)
         ];

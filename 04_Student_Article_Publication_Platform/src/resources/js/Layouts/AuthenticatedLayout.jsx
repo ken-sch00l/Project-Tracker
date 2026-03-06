@@ -4,11 +4,72 @@ import { useState } from 'react'
 
 export default function AuthenticatedLayout({ header, children }) {
 
-const { auth } = usePage().props
+const page = usePage()
+const { auth } = page.props
 const user = auth.user
-const role = user.roles?.[0]?.name
+const component = page.component
 
-const notifications = user.unread_notifications || []
+// Determine the current “active” role from the current Inertia page/component.
+// This allows multi-role demo accounts to see role-specific nav + notifications.
+// Try to match the component first (e.g., "Editor/Dashboard") but fall back to
+// the first role the user has if the component cannot be determined.
+const inferredRole = component?.toLowerCase() || ''
+
+const role = inferredRole.includes('writer')
+    ? 'writer'
+    : inferredRole.includes('editor')
+    ? 'editor'
+    : inferredRole.includes('student')
+    ? 'student'
+    : user.roles?.[0]?.name
+
+const availableRoles = (user.roles || []).map((r) => r.name)
+
+const dashboardLinks = []
+
+if (availableRoles.includes('writer')) {
+    dashboardLinks.push({
+        role: 'writer',
+        label: 'Writer Dashboard',
+        route: 'writer.dashboard',
+    })
+}
+
+if (availableRoles.includes('editor')) {
+    dashboardLinks.push({
+        role: 'editor',
+        label: 'Editor Dashboard',
+        route: 'editor.dashboard',
+    })
+}
+
+if (availableRoles.includes('student')) {
+    dashboardLinks.push({
+        role: 'student',
+        label: 'Student Dashboard',
+        route: 'student.dashboard',
+    })
+}
+
+const allNotifications = user.unread_notifications || []
+const notifications = allNotifications.filter((notification) => {
+    const type = notification.data?.type
+
+    if (role === 'editor') {
+        return type === 'article_submitted'
+    }
+
+    if (role === 'writer') {
+        return ['comment_posted', 'article_published', 'revision_requested'].includes(type)
+    }
+
+    if (role === 'student') {
+        return type === 'article_published_broadcast'
+    }
+
+    return true
+})
+
 const [open, setOpen] = useState(false)
 
 const markAsRead = (id, url) => {
@@ -45,32 +106,17 @@ return (
 
                 <div className="flex items-center gap-6 text-sm relative">
 
-                    {role === "writer" && (
+                    {dashboardLinks.map((link) => (
                         <Link
-                            href={route('writer.dashboard')}
-                            className="hover:text-[#C6A75E]"
+                            key={link.role}
+                            href={route(link.route)}
+                            className={
+                                `hover:text-[#C6A75E] ${link.role === role ? 'font-semibold' : ''}`
+                            }
                         >
-                            Writer Dashboard
+                            {link.label}
                         </Link>
-                    )}
-
-                    {role === "editor" && (
-                        <Link
-                            href={route('editor.dashboard')}
-                            className="hover:text-[#C6A75E]"
-                        >
-                            Editor Dashboard
-                        </Link>
-                    )}
-
-                    {role === "student" && (
-                        <Link
-                            href={route('student.dashboard')}
-                            className="hover:text-[#C6A75E]"
-                        >
-                            Student Dashboard
-                        </Link>
-                    )}
+                    ))}
 
                     {/* NOTIFICATION BELL */}
 

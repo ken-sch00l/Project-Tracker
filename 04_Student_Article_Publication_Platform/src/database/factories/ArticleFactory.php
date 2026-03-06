@@ -63,7 +63,7 @@ class ArticleFactory extends Factory
 
             'editor_id' => null,
 
-            'category_id' => Category::inRandomOrder()->first()->id ?? 1,
+            'category_id' => Category::inRandomOrder()->first()->id ?? Category::factory()->create()->id,
 
         ];
     }

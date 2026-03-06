@@ -30,6 +30,11 @@ class ArticlePolicy
         return $user->hasRole('editor');
     }
 
+    public function revise(User $user, Article $article)
+    {
+        return $user->hasRole('writer') && $article->writer_id === $user->id;
+    }
+
     public function view(User $user, Article $article)
     {
         // writers can view own; editors can view any; students can view published

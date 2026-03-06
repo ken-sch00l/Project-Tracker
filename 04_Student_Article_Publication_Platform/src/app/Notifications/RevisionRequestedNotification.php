@@ -36,6 +36,7 @@ class RevisionRequestedNotification extends Notification
     public function toDatabase($notifiable)
     {
         return [
+            'type' => 'revision_requested',
             'message' => 'Revision requested for: '.$this->revision->article->title,
             'url' => route('articles.show', $this->revision->article->id)
         ];

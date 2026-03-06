@@ -87,6 +87,7 @@ class StudentController extends Controller
 
     public function comment(Request $request, Article $article)
     {
+        $this->authorize('comment', [\App\Models\Comment::class, $article]);
 
         $data = $request->validate([
             'content' => 'required|string'

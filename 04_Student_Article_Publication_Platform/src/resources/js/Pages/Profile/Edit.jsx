@@ -44,13 +44,25 @@ export default function Edit({ mustVerifyEmail, status }) {
 
     }
 
+    const roles = auth?.user?.roles?.map((r) => r.name) ?? []
+    const demoUser = roles.includes('writer') && roles.includes('editor') && roles.includes('student')
+
     return (
 
         <AuthenticatedLayout
             header={
-                <h2 className="text-3xl font-serif">
-                    Profile
-                </h2>
+                <>
+                    <h2 className="text-3xl font-serif">
+                        Profile
+                    </h2>
+
+                    {demoUser && (
+                        <p className="mt-1 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800">
+                            <span className="h-2 w-2 rounded-full bg-yellow-500" />
+                            Demo account: can switch roles quickly
+                        </p>
+                    )}
+                </>
             }
         >
 
@@ -68,6 +80,37 @@ export default function Edit({ mustVerifyEmail, status }) {
                 </button>
 
                 <div className="space-y-10">
+
+                    {/* DEMO ROLE NAV (test@gmail.com only) */}
+
+                    {demoUser && (
+                        <div className="p-6 bg-white border border-gray-200 rounded-xl">
+                            <h3 className="text-lg font-semibold mb-4">Quick role navigation</h3>
+                            <div className="flex gap-2 flex-wrap">
+                                <button
+                                    type="button"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                    onClick={() => router.visit(route('writer.dashboard'))}
+                                >
+                                    Writer Dashboard
+                                </button>
+                                <button
+                                    type="button"
+                                    className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700"
+                                    onClick={() => router.visit(route('editor.dashboard'))}
+                                >
+                                    Editor Dashboard
+                                </button>
+                                <button
+                                    type="button"
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                    onClick={() => router.visit(route('student.dashboard'))}
+                                >
+                                    Student Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* PROFILE INFO */}
 
