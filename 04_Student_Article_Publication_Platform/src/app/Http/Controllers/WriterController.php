@@ -11,11 +11,6 @@ use Inertia\Inertia;
 
 class WriterController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Writer Dashboard
-    |--------------------------------------------------------------------------
-    */
 
     public function dashboard()
     {
@@ -25,12 +20,6 @@ class WriterController extends Controller
             ->where('writer_id', $writerId)
             ->latest()
             ->get();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Statistics
-        |--------------------------------------------------------------------------
-        */
 
         $stats = [
 
@@ -49,23 +38,11 @@ class WriterController extends Controller
                 ->count(),
         ];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Most Engaging Articles (Top 5 by comments)
-        |--------------------------------------------------------------------------
-        */
-
         $popularArticles = Article::where('writer_id', $writerId)
             ->withCount('comments')
             ->orderByDesc('comments_count')
             ->limit(5)
             ->get();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Writing Activity (Articles per month)
-        |--------------------------------------------------------------------------
-        */
 
         $activity = Article::where('writer_id', $writerId)
             ->selectRaw('MONTH(created_at) as month, COUNT(*) as total')
@@ -87,20 +64,20 @@ class WriterController extends Controller
                 ];
             });
 
+        $categoryStats = Article::where('writer_id', $writerId)
+            ->join('categories','articles.category_id','=','categories.id')
+            ->selectRaw('categories.name as category, COUNT(*) as total')
+            ->groupBy('categories.name')
+            ->get();
+
         return Inertia::render('Writer/Dashboard', [
             'articles' => $articles,
             'stats' => $stats,
             'popularArticles' => $popularArticles,
-            'activity' => $activity
+            'activity' => $activity,
+            'categoryStats' => $categoryStats
         ]);
     }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create Article Page
-    |--------------------------------------------------------------------------
-    */
 
     public function create()
     {
@@ -110,13 +87,6 @@ class WriterController extends Controller
             'categories' => $categories
         ]);
     }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Save Draft / Submit
-    |--------------------------------------------------------------------------
-    */
 
     public function store(Request $request)
     {
@@ -147,34 +117,18 @@ class WriterController extends Controller
         return redirect()->route('writer.dashboard');
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Submit Draft
-    |--------------------------------------------------------------------------
-    */
-
     public function submit(Article $article)
     {
         $submitted = ArticleStatus::where('name','submitted')->first();
 
         if ($submitted) {
-
             $article->update([
                 'status_id' => $submitted->id
             ]);
-
         }
 
         return redirect()->route('writer.dashboard');
     }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Revise Article
-    |--------------------------------------------------------------------------
-    */
 
     public function revise(Request $request, Article $article)
     {

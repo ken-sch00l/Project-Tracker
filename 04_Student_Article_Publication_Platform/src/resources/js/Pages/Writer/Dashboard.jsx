@@ -1,18 +1,148 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, Link, router } from '@inertiajs/react'
 
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    ArcElement,
+    Tooltip,
+    Legend
+} from 'chart.js'
+
+import { Line, Bar, Doughnut, Pie } from 'react-chartjs-2'
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    ArcElement,
+    Tooltip,
+    Legend
+)
+
 export default function Dashboard({
     articles = [],
     stats = {},
     popularArticles = [],
-    activity = []
+    activity = [],
+    categoryStats = []
 }) {
 
     const submitArticle = (id) => {
         router.post(`/writer/articles/${id}/submit`)
     }
 
-    const maxActivity = Math.max(...activity.map(a => a.total), 1)
+    const activitySafe = activity ?? []
+    const popularSafe = popularArticles ?? []
+    const categorySafe = categoryStats ?? []
+
+    const truncate = (text, length = 25) => {
+        if (!text) return ""
+        return text.length > length
+            ? text.substring(0, length) + "..."
+            : text
+    }
+
+    /*
+    ---------------------------
+    Writing Activity Chart
+    ---------------------------
+    */
+
+    const activityChartData = {
+        labels: activitySafe.map(a => a.month),
+        datasets: [
+            {
+                label: "Articles",
+                data: activitySafe.map(a => a.total),
+                borderColor: "#0F172A",
+                backgroundColor: "rgba(15,23,42,0.12)",
+                fill: true,
+                tension: 0.4
+            }
+        ]
+    }
+
+    const activityOptions = {
+        maintainAspectRatio:false,
+        animation:{duration:1000}
+    }
+
+    /*
+    ---------------------------
+    Status Chart
+    ---------------------------
+    */
+
+    const statusData = {
+        labels:["Drafts","Submitted","Published"],
+        datasets:[
+            {
+                data:[
+                    stats.drafts || 0,
+                    stats.submitted || 0,
+                    stats.published || 0
+                ],
+                backgroundColor:[
+                    "#94A3B8",
+                    "#3B82F6",
+                    "#16A34A"
+                ]
+            }
+        ]
+    }
+
+    /*
+    ---------------------------
+    Engagement Chart
+    ---------------------------
+    */
+
+    const engagementData = {
+        labels: popularSafe.map(a => truncate(a.title)),
+        datasets:[
+            {
+                label:"Comments",
+                data: popularSafe.map(a => a.comments_count),
+                backgroundColor:"#0F172A"
+            }
+        ]
+    }
+
+    const engagementOptions = {
+        indexAxis:"y",
+        maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{ticks:{precision:0}}}
+    }
+
+    /*
+    ---------------------------
+    Category Chart
+    ---------------------------
+    */
+
+    const categoryData = {
+        labels: categorySafe.map(c => c.category),
+        datasets:[
+            {
+                data: categorySafe.map(c => c.total),
+                backgroundColor:[
+                    "#0F172A",
+                    "#3B82F6",
+                    "#16A34A",
+                    "#F59E0B",
+                    "#8B5CF6"
+                ]
+            }
+        ]
+    }
 
     return (
 
@@ -22,11 +152,11 @@ export default function Dashboard({
 
             <Head title="Writer Dashboard" />
 
-            <div className="max-w-6xl mx-auto px-12 pb-20">
+            <div className="max-w-7xl mx-auto px-12 pb-20">
 
                 {/* STATISTICS */}
 
-                <div className="grid md:grid-cols-4 gap-6 mb-16">
+                <div className="grid md:grid-cols-4 gap-6 mb-14">
 
                     <StatCard title="Total Articles" value={stats.total_articles || 0}/>
                     <StatCard title="Drafts" value={stats.drafts || 0}/>
@@ -35,118 +165,87 @@ export default function Dashboard({
 
                 </div>
 
+
                 {/* WRITING ACTIVITY */}
 
-                <div className="mb-16">
+                <div className="bg-white border rounded-xl p-8 mb-14">
 
                     <h3 className="text-2xl font-serif mb-6">
                         Writing Activity
                     </h3>
 
-                    <div className="bg-white border rounded-xl p-8 space-y-6">
+                    <div style={{height:"260px"}}>
 
-                        {activity.length === 0 ? (
-
-                            <p className="text-gray-500">
-                                No activity data yet.
-                            </p>
-
-                        ) : (
-
-                            activity.map(item => {
-
-                                const width = (item.total / maxActivity) * 100
-
-                                return (
-
-                                    <div key={item.month}>
-
-                                        <div className="flex justify-between mb-2">
-
-                                            <span>
-                                                {item.month}
-                                            </span>
-
-                                            <span className="text-sm text-gray-500">
-                                                {item.total} articles
-                                            </span>
-
-                                        </div>
-
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-
-                                            <div
-                                                className="bg-[#0F172A] h-2 rounded-full"
-                                                style={{ width: `${width}%` }}
-                                            />
-
-                                        </div>
-
-                                    </div>
-
-                                )
-
-                            })
-
-                        )}
+                        <Line
+                            data={activityChartData}
+                            options={activityOptions}
+                        />
 
                     </div>
 
                 </div>
 
 
-                {/* MOST ENGAGING ARTICLES */}
+                {/* ANALYTICS */}
 
-                <div className="mb-16">
+                <div className="grid md:grid-cols-3 gap-8 mb-14">
 
-                    <h3 className="text-2xl font-serif mb-6">
-                        Most Engaging Articles
-                    </h3>
+                    {/* STATUS */}
 
-                    {popularArticles.length === 0 ? (
+                    <div className="bg-white border rounded-xl p-6">
 
-                        <div className="bg-white border rounded-xl p-8 text-gray-500">
-                            No engagement data yet.
-                        </div>
+                        <h3 className="font-serif text-lg mb-4">
+                            Article Status
+                        </h3>
 
-                    ) : (
+                        <div className="flex justify-center items-center" style={{height:"220px"}}>
 
-                        <div className="bg-white border rounded-xl p-8 space-y-6">
-
-                            {popularArticles.map((article,index) => (
-
-                                <div key={article.id}>
-
-                                    <div className="flex justify-between mb-2">
-
-                                        <span className="font-medium">
-                                            #{index + 1} {article.title}
-                                        </span>
-
-                                        <span className="text-sm text-gray-500">
-                                            {article.comments_count} comments
-                                        </span>
-
-                                    </div>
-
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-
-                                        <div
-                                            className="bg-[#0F172A] h-2 rounded-full"
-                                            style={{
-                                                width: `${Math.min(article.comments_count * 25, 100)}%`
-                                            }}
-                                        />
-
-                                    </div>
-
-                                </div>
-
-                            ))}
+                            <div style={{width:"180px"}}>
+                                <Doughnut data={statusData}/>
+                            </div>
 
                         </div>
 
-                    )}
+                    </div>
+
+
+                    {/* CATEGORY */}
+
+                    <div className="bg-white border rounded-xl p-6">
+
+                        <h3 className="font-serif text-lg mb-4">
+                            Articles by Category
+                        </h3>
+
+                        <div className="flex justify-center items-center" style={{height:"220px"}}>
+
+                            <div style={{width:"180px"}}>
+                                <Pie data={categoryData}/>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ENGAGEMENT */}
+
+                    <div className="bg-white border rounded-xl p-6">
+
+                        <h3 className="font-serif text-lg mb-4">
+                            Engagement
+                        </h3>
+
+                        <div style={{height:"200px"}}>
+
+                            {popularSafe.length === 0
+                                ? <p className="text-gray-500">No engagement data yet.</p>
+                                : <Bar data={engagementData} options={engagementOptions}/>
+                            }
+
+                        </div>
+
+                    </div>
 
                 </div>
 
@@ -176,6 +275,8 @@ export default function Dashboard({
 
                 </div>
 
+
+                {/* ARTICLE GRID */}
 
                 <div className="grid md:grid-cols-3 gap-10">
 
@@ -247,6 +348,12 @@ export default function Dashboard({
 }
 
 
+/*
+--------------------------------
+STAT CARD
+--------------------------------
+*/
+
 function StatCard({ title, value }) {
 
     const percent = Math.min(value * 10, 100)
@@ -259,24 +366,44 @@ function StatCard({ title, value }) {
 
                 <svg className="w-20 h-20 transform -rotate-90">
 
-                    <circle cx="40" cy="40" r="34" stroke="#e5e7eb" strokeWidth="6" fill="none"/>
+                    <circle
+                        cx="40"
+                        cy="40"
+                        r="34"
+                        stroke="#e5e7eb"
+                        strokeWidth="6"
+                        fill="none"
+                    />
+
+                    <defs>
+
+                        <linearGradient id="grad1">
+
+                            <stop offset="0%" stopColor="#0F172A"/>
+                            <stop offset="100%" stopColor="#3B82F6"/>
+
+                        </linearGradient>
+
+                    </defs>
 
                     <circle
                         cx="40"
                         cy="40"
                         r="34"
-                        stroke="#0F172A"
+                        stroke="url(#grad1)"
                         strokeWidth="6"
                         fill="none"
                         strokeDasharray="214"
                         strokeDashoffset={214 - (214 * percent) / 100}
-                        style={{ transition: "stroke-dashoffset 1s ease" }}
+                        style={{transition:"stroke-dashoffset 1s ease"}}
                     />
 
                 </svg>
 
-                <div className="absolute inset-0 flex items-center justify-center font-semibold">
+                <div className="absolute inset-0 flex items-center justify-center font-semibold text-lg">
+
                     {value}
+
                 </div>
 
             </div>
@@ -286,4 +413,5 @@ function StatCard({ title, value }) {
         </div>
 
     )
+
 }

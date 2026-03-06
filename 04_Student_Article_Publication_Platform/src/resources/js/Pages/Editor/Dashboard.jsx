@@ -1,7 +1,67 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { Head, Link } from '@inertiajs/react'
 
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    ArcElement,
+    Tooltip,
+    Legend
+} from 'chart.js'
+
+import { Doughnut, Bar } from 'react-chartjs-2'
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    ArcElement,
+    Tooltip,
+    Legend
+)
+
 export default function Dashboard({ pending = [], needsRevision = [], stats = {} }) {
+
+    const workflowData = {
+        labels: ["Pending", "Needs Revision", "Published"],
+        datasets: [
+            {
+                data: [
+                    stats.pending_reviews ?? 0,
+                    stats.needs_revision ?? 0,
+                    stats.published_articles ?? 0
+                ],
+                backgroundColor: [
+                    "#2563EB",
+                    "#EA580C",
+                    "#16A34A"
+                ]
+            }
+        ]
+    }
+
+    const reviewBarData = {
+        labels: ["Pending", "Needs Revision", "Published", "Reviewed by You"],
+        datasets: [
+            {
+                label: "Articles",
+                data: [
+                    stats.pending_reviews ?? 0,
+                    stats.needs_revision ?? 0,
+                    stats.published_articles ?? 0,
+                    stats.articles_reviewed ?? 0
+                ],
+                backgroundColor: "#0F172A"
+            }
+        ]
+    }
+
+    const barOptions = {
+        maintainAspectRatio:false,
+        plugins:{legend:{display:false}}
+    }
 
     return (
 
@@ -11,7 +71,7 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
 
             <Head title="Editor Dashboard" />
 
-            <div className="max-w-6xl mx-auto px-12 pb-20">
+            <div className="max-w-7xl mx-auto px-12 pb-20">
 
                 {/* STATISTICS */}
 
@@ -40,6 +100,51 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
                         label="Reviewed by You"
                         color="#0F172A"
                     />
+
+                </div>
+
+
+                {/* ANALYTICS */}
+
+                <div className="grid md:grid-cols-2 gap-8 mb-14">
+
+                    {/* WORKFLOW PIE */}
+
+                    <div className="bg-white border rounded-xl p-8">
+
+                        <h3 className="text-xl font-serif mb-4">
+                            Workflow Distribution
+                        </h3>
+
+                        <div className="flex justify-center" style={{height:"220px"}}>
+
+                            <div style={{width:"200px"}}>
+                                <Doughnut data={workflowData}/>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* REVIEW ACTIVITY */}
+
+                    <div className="bg-white border rounded-xl p-8">
+
+                        <h3 className="text-xl font-serif mb-4">
+                            Article Workflow Overview
+                        </h3>
+
+                        <div style={{height:"220px"}}>
+
+                            <Bar
+                                data={reviewBarData}
+                                options={barOptions}
+                            />
+
+                        </div>
+
+                    </div>
 
                 </div>
 
@@ -84,7 +189,6 @@ export default function Dashboard({ pending = [], needsRevision = [], stats = {}
 }
 
 
-
 function ArticleCard({article}){
 
     return(
@@ -109,6 +213,7 @@ function ArticleCard({article}){
         </div>
 
     )
+
 }
 
 
