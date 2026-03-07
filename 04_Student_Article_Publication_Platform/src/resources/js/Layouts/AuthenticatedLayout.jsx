@@ -1,176 +1,238 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
-import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import ApplicationLogo from '@/Components/ApplicationLogo'
+import { Link, usePage, router } from '@inertiajs/react'
+import { useState } from 'react'
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+const page = usePage()
+const { auth } = page.props
+const user = auth.user
+const component = page.component
 
-    return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
-                        <div className="flex">
-                            <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
-                                </Link>
-                            </div>
+// Dark mode removed — always use the light theme and consistent button colors.
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                            </div>
-                        </div>
+// Determine the current “active” role from the current Inertia page/component.
+// This allows multi-role demo accounts to see role-specific nav + notifications.
+// Try to match the component first (e.g., "Editor/Dashboard") but fall back to
+// the first role the user has if the component cannot be determined.
+const inferredRole = component?.toLowerCase() || ''
 
-                        <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {user.name}
+const role = inferredRole.includes('writer')
+    ? 'writer'
+    : inferredRole.includes('editor')
+    ? 'editor'
+    : inferredRole.includes('student')
+    ? 'student'
+    : user.roles?.[0]?.name
 
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </Dropdown.Trigger>
+const availableRoles = (user.roles || []).map((r) => r.name)
 
-                                    <Dropdown.Content>
-                                        <Dropdown.Link
-                                            href={route('profile.edit')}
-                                        >
-                                            Profile
-                                        </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
-                            </div>
-                        </div>
+const dashboardLinks = []
 
-                        <div className="-me-2 flex items-center sm:hidden">
-                            <button
-                                onClick={() =>
-                                    setShowingNavigationDropdown(
-                                        (previousState) => !previousState,
-                                    )
-                                }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                            >
-                                <svg
-                                    className="h-6 w-6"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        className={
-                                            !showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        className={
-                                            showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+if (availableRoles.includes('writer')) {
+    dashboardLinks.push({
+        role: 'writer',
+        label: 'Writer Dashboard',
+        route: 'writer.dashboard',
+    })
+}
 
-                <div
-                    className={
-                        (showingNavigationDropdown ? 'block' : 'hidden') +
-                        ' sm:hidden'
-                    }
+if (availableRoles.includes('editor')) {
+    dashboardLinks.push({
+        role: 'editor',
+        label: 'Editor Dashboard',
+        route: 'editor.dashboard',
+    })
+}
+
+if (availableRoles.includes('student')) {
+    dashboardLinks.push({
+        role: 'student',
+        label: 'Student Dashboard',
+        route: 'student.dashboard',
+    })
+}
+
+const allNotifications = user.unread_notifications || []
+const notifications = allNotifications.filter((notification) => {
+    const type = notification.data?.type
+
+    if (role === 'editor') {
+        return type === 'article_submitted'
+    }
+
+    if (role === 'writer') {
+        return ['comment_posted', 'article_published', 'revision_requested'].includes(type)
+    }
+
+    if (role === 'student') {
+        return type === 'article_published_broadcast'
+    }
+
+    return true
+})
+
+const [open, setOpen] = useState(false)
+
+const markAsRead = (id, url) => {
+
+    router.post(route('notifications.read', id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (url) window.location.href = url
+        }
+    })
+
+}
+
+return (
+
+    <div className={`min-h-screen bg-[#F8F6F1]`}>
+
+        {/* NAVBAR */}
+
+        <nav className={`border-b border-gray-200 bg-white`}>
+
+            <div className="max-w-7xl mx-auto px-12 py-6 flex justify-between items-center">
+
+                {/* LEFT SIDE */}
+
+                <Link
+                    href="/"
+                    className="flex items-center gap-4"
                 >
-                    <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
+                    <ApplicationLogo className="h-8" />
+                </Link>
+
+                {/* RIGHT SIDE */}
+
+                <div className="flex items-center gap-6 text-sm relative">
+
+                    {dashboardLinks.map((link) => (
+                        <Link
+                            key={link.role}
+                            href={route(link.route)}
+                            className={`hover:text-[#C6A75E] ${link.role === role ? 'font-semibold' : ''} text-gray-800`}
                         >
-                            Dashboard
-                        </ResponsiveNavLink>
+                            {link.label}
+                        </Link>
+                    ))}
+
+                    {/* NOTIFICATION BELL */}
+
+                    <div className="relative">
+
+                        <button
+                            onClick={() => setOpen(!open)}
+                            className="relative hover:text-[#C6A75E]"
+                        >
+                            🔔
+
+                            {notifications.length > 0 && (
+                                <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                    {notifications.length}
+                                </span>
+                            )}
+
+                        </button>
+
+                        {open && (
+
+                            <div className="absolute right-0 mt-3 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+
+                                <div className="p-4 border-b text-sm font-semibold">
+                                    Notifications
+                                </div>
+
+                                {notifications.length === 0 && (
+
+                                    <div className="p-4 text-sm text-gray-500">
+                                        No new notifications
+                                    </div>
+
+                                )}
+
+                                {notifications.map(notification => (
+
+                                    <div
+                                        key={notification.id}
+                                        className="p-4 border-b text-sm hover:bg-gray-50 cursor-pointer"
+                                        onClick={() => markAsRead(notification.id, notification.data.url)}
+                                    >
+
+                                        {notification.data.message}
+
+                                    </div>
+
+                                ))}
+
+                            </div>
+
+                        )}
+
                     </div>
 
-                    <div className="border-t border-gray-200 pb-1 pt-4">
-                        <div className="px-4">
-                            <div className="text-base font-medium text-gray-800">
-                                {user.name}
-                            </div>
-                            <div className="text-sm font-medium text-gray-500">
-                                {user.email}
-                            </div>
-                        </div>
+                    { /* Theme toggle removed per user request */ }
 
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route('logout')}
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
+                    <Link
+                        href={route('profile.edit')}
+                        className="hover:text-[#C6A75E]"
+                    >
+                        Profile
+                    </Link>
+
+                    <Link
+                        href={route('logout')}
+                        method="post"
+                        as="button"
+                        className="hover:text-red-500"
+                    >
+                        Logout
+                    </Link>
+
                 </div>
-            </nav>
 
-            {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        {header}
-                    </div>
-                </header>
-            )}
+            </div>
 
-            <main>{children}</main>
-        </div>
-    );
+        </nav>
+
+        {/* PAGE HEADER */}
+
+        {header && (
+
+                    <header className="max-w-7xl mx-auto px-12 py-10">
+
+                        <div className="flex items-center justify-between">
+
+                            <div className="flex items-center text-gray-900 dark:text-gray-200">
+                                { /* Hide back button on root / welcome pages */ }
+                                {(!(page.url === '/' || (component || '').toLowerCase().includes('welcome'))) && (
+                                    <button
+                                        onClick={() => window.history.back()}
+                                        className="mr-4 text-sm px-3 py-1 rounded bg-transparent hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200"
+                                        aria-label="Go back"
+                                    >
+                                        ← Back
+                                    </button>
+                                )}
+
+                                {header}
+                            </div>
+
+                        </div>
+
+                    </header>
+
+        )}
+
+        {/* PAGE CONTENT */}
+
+        <main>
+            {children}
+        </main>
+
+    </div>
+
+)
+
 }

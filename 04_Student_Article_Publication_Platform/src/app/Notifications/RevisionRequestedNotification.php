@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Models\Article;
 use App\Models\Revision;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -21,7 +20,7 @@ class RevisionRequestedNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['mail'];
+        return ['mail','database'];
     }
 
     public function toMail($notifiable)
@@ -29,7 +28,17 @@ class RevisionRequestedNotification extends Notification
         return (new MailMessage)
             ->subject('Revision Requested')
             ->line('A revision has been requested for your article: '.$this->revision->article->title)
-            ->line('Comments: '.$this->revision->comments)
-            ->action('View Article', url(route('writer.dashboard')));
+            ->line('Editor Feedback:')
+            ->line($this->revision->comments ?? 'No comments provided.')
+            ->action('Edit Article', route('articles.edit', $this->revision->article->id));
+    }
+
+    public function toDatabase($notifiable)
+    {
+        return [
+            'type' => 'revision_requested',
+            'message' => 'Revision requested for: '.$this->revision->article->title,
+            'url' => route('articles.edit', $this->revision->article->id)
+        ];
     }
 }

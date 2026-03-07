@@ -1,229 +1,244 @@
-import React, { useState } from 'react';
-import {
-    Container,
-    Typography,
-    TextField,
-    Button,
-    Box,
-    Card,
-    CardContent,
-    AppBar,
-    Toolbar,
-    Grid,
-    Paper,
-    Divider,
-    Alert,
-} from '@mui/material';
-import { Inertia } from '@inertiajs/inertia';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import SendIcon from '@mui/icons-material/Send';
-import PublishIcon from '@mui/icons-material/Publish';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
+import { Head, router } from '@inertiajs/react'
+import { useState } from 'react'
 
 export default function Review({ article }) {
-    const [comments, setComments] = useState('');
-    const [loading, setLoading] = useState(false);
+
+    const [comments, setComments] = useState("")
+    const [rejectReason, setRejectReason] = useState("")
+    const [showRejectForm, setShowRejectForm] = useState(null)
 
     const requestRevision = () => {
-        setLoading(true);
-        Inertia.post(route('editor.articles.requestRevision', article), { comments });
-    };
+        router.post(route('editor.articles.requestRevision', article.id), {
+            comments
+        })
+    }
 
     const publish = () => {
-        setLoading(true);
-        Inertia.post(route('editor.articles.publish', article));
-    };
+        router.post(route('editor.articles.publish', article.id))
+    }
 
-    const handleBack = () => {
-        window.history.back();
-    };
+    const handleFlagComment = (commentId) => {
+        router.post(route('editor.comments.flag', commentId))
+    }
+
+    const handleApproveComment = (commentId) => {
+        router.post(route('editor.comments.approve', commentId))
+    }
+
+    const handleRejectComment = (commentId) => {
+        router.post(route('editor.comments.reject', commentId), {
+            reason: rejectReason
+        }, {
+            onSuccess: () => {
+                setShowRejectForm(null)
+                setRejectReason("")
+            }
+        })
+    }
+
+    const handlePinComment = (commentId) => {
+        router.post(route('editor.comments.pin', commentId))
+    }
+
+    const approvedComments = article.comments?.filter(c => c.status === 'approved') || []
+    const flaggedComments = article.comments?.filter(c => c.status === 'flagged') || []
 
     return (
-        <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', minHeight: '100vh', pb: 4 }}>
-            {/* Header */}
-            <AppBar
-                position="sticky"
-                sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    boxShadow: '0 4px 20px rgba(102, 126, 234, 0.2)',
-                }}
-            >
-                <Toolbar>
-                    <Button
-                        startIcon={<ArrowBackIcon />}
-                        onClick={handleBack}
-                        sx={{
-                            color: 'white',
-                            mr: 2,
-                        }}
-                    >
-                        Back
-                    </Button>
-                    <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                            Review Article
-                        </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                            {article.title}
-                        </Typography>
-                    </Box>
-                </Toolbar>
-            </AppBar>
 
-            <Container maxWidth="lg" sx={{ py: 4 }}>
-                <Grid container spacing={3}>
-                    {/* Article Content */}
-                    <Grid item xs={12} md={8}>
-                        <Card
-                            sx={{
-                                borderRadius: '12px',
-                                background: 'white',
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                                overflow: 'hidden',
-                            }}
-                        >
-                            <CardContent sx={{ p: 4 }}>
-                                <Typography
-                                    variant="h4"
-                                    sx={{
-                                        fontWeight: 700,
-                                        color: '#1e293b',
-                                        mb: 1,
-                                    }}
-                                >
-                                    {article.title}
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                                    <Typography variant="body2" color="textSecondary">
-                                        <strong>Author:</strong> {article.writer.name}
-                                    </Typography>
-                                    <Typography variant="body2" color="textSecondary">
-                                        <strong>Category:</strong> {article.category.name}
-                                    </Typography>
-                                    <Typography variant="body2" color="textSecondary">
-                                        <strong>Submitted:</strong> {new Date(article.created_at).toLocaleDateString()}
-                                    </Typography>
-                                </Box>
-                                <Divider sx={{ my: 3 }} />
-                                <Box
-                                    sx={{
-                                        '& p': { lineHeight: 1.8, color: '#475569' },
-                                        '& img': { maxWidth: '100%', height: 'auto', my: 2 },
-                                        '& strong': { fontWeight: 700 },
-                                        '& em': { fontStyle: 'italic' },
-                                    }}
-                                >
-                                    <div dangerouslySetInnerHTML={{ __html: article.content }} />
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    </Grid>
+        <AuthenticatedLayout
+            header={<h2 className="text-4xl font-serif">Editor Review</h2>}
+        >
 
-                    {/* Review Panel */}
-                    <Grid item xs={12} md={4}>
-                        <Paper
-                            sx={{
-                                p: 3,
-                                borderRadius: '12px',
-                                background: 'white',
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-                                position: 'sticky',
-                                top: 100,
-                            }}
-                        >
-                            <Typography
-                                variant="h6"
-                                sx={{
-                                    fontWeight: 700,
-                                    color: '#1e293b',
-                                    mb: 2,
-                                }}
-                            >
-                                Editor Actions
-                            </Typography>
+            <Head title="Review Article" />
 
-                            <Alert severity="info" sx={{ mb: 3 }}>
-                                Choose to request revisions or publish this article.
-                            </Alert>
+            <div className="max-w-7xl mx-auto px-12 pb-20">
 
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    fontWeight: 600,
-                                    mb: 1,
-                                    color: '#64748b',
-                                }}
-                            >
-                                Revision Comments
-                            </Typography>
-                            <TextField
-                                placeholder="Add comments for the writer (optional)"
-                                fullWidth
-                                multiline
-                                rows={6}
-                                value={comments}
-                                onChange={(e) => setComments(e.target.value)}
-                                variant="outlined"
-                                sx={{
-                                    mb: 2,
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '8px',
-                                    },
-                                }}
+                <div className="grid grid-cols-3 gap-10">
+
+                    {/* ARTICLE SECTION */}
+
+                    <div className="col-span-2">
+
+                        {/* ARTICLE HEADER */}
+
+                        <div className="mb-8">
+
+                            <h1 className="text-3xl font-serif mb-2">
+                                {article.title}
+                            </h1>
+
+                            <p className="text-gray-500 text-sm">
+                                {article.writer?.name} • {article.category?.name}
+                            </p>
+
+                        </div>
+
+                        {/* ARTICLE CARD */}
+
+                        <div className="bg-white border border-gray-200 rounded-xl p-10 overflow-hidden mb-10">
+
+                            <div
+                                className="prose prose-lg max-w-none break-words"
+                                dangerouslySetInnerHTML={{ __html: article.content }}
                             />
 
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    startIcon={<SendIcon />}
-                                    onClick={requestRevision}
-                                    disabled={loading || !comments.trim()}
-                                    sx={{
-                                        color: '#e65100',
-                                        borderColor: '#e65100',
-                                        fontWeight: 700,
-                                        textTransform: 'none',
-                                        py: 1.2,
-                                        '&:hover': {
-                                            background: '#fff3e0',
-                                        },
-                                    }}
-                                >
-                                    Request Revision
-                                </Button>
-                                <Button
-                                    fullWidth
-                                    variant="contained"
-                                    startIcon={<PublishIcon />}
-                                    onClick={publish}
-                                    disabled={loading}
-                                    sx={{
-                                        background: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
-                                        fontWeight: 700,
-                                        textTransform: 'none',
-                                        py: 1.2,
-                                    }}
-                                >
-                                    Approve & Publish
-                                </Button>
-                            </Box>
+                        </div>
 
-                            <Divider sx={{ my: 3 }} />
+                        {/* COMMENTS MODERATION */}
 
-                            <Typography
-                                variant="caption"
-                                sx={{
-                                    display: 'block',
-                                    color: '#94a3b8',
-                                    textAlign: 'center',
-                                }}
+                        <div className="bg-white border border-gray-200 rounded-xl p-6">
+
+                            <h3 className="text-xl font-semibold mb-6">
+                                Comment Moderation ({article.comments?.length || 0})
+                            </h3>
+
+                            {approvedComments.length > 0 && (
+                                <div className="mb-8">
+                                    <h4 className="font-semibold text-sm text-gray-700 mb-3">Approved Comments</h4>
+                                    <div className="space-y-3">
+                                        {approvedComments.map(comment => (
+                                            <div key={comment.id} className="border rounded-lg p-4 bg-green-50">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <p className="font-semibold text-sm">{comment.student?.name}</p>
+                                                        <p className="text-xs text-gray-500">{new Date(comment.created_at).toLocaleDateString()}</p>
+                                                    </div>
+                                                    {comment.is_pinned && <span className="text-sm font-medium bg-yellow-100 text-yellow-800 px-2 py-1 rounded">📌 Pinned</span>}
+                                                </div>
+                                                <p className="text-gray-800 mb-3">{comment.content}</p>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleFlagComment(comment.id)}
+                                                        className="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-2 py-1 rounded"
+                                                    >
+                                                        🚩 Flag
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handlePinComment(comment.id)}
+                                                        className="text-xs bg-yellow-100 text-yellow-600 hover:bg-yellow-200 px-2 py-1 rounded"
+                                                    >
+                                                        {comment.is_pinned ? '📌 Unpin' : '📌 Pin'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {flaggedComments.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-sm text-gray-700 mb-3">Flagged Comments (Review)</h4>
+                                    <div className="space-y-3">
+                                        {flaggedComments.map(comment => (
+                                            <div key={comment.id} className="border rounded-lg p-4 bg-yellow-50">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <p className="font-semibold text-sm">{comment.student?.name}</p>
+                                                        <p className="text-xs text-gray-500">{new Date(comment.created_at).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                                <p className="text-gray-800 mb-3">{comment.content}</p>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleApproveComment(comment.id)}
+                                                        className="text-xs bg-green-100 text-green-600 hover:bg-green-200 px-2 py-1 rounded"
+                                                    >
+                                                        ✓ Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setShowRejectForm(comment.id)}
+                                                        className="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-2 py-1 rounded"
+                                                    >
+                                                        ✕ Reject
+                                                    </button>
+                                                </div>
+
+                                                {showRejectForm === comment.id && (
+                                                    <div className="mt-3 p-3 bg-white border border-red-200 rounded">
+                                                        <textarea
+                                                            value={rejectReason}
+                                                            onChange={(e) => setRejectReason(e.target.value)}
+                                                            placeholder="Reason for rejection..."
+                                                            className="w-full border rounded p-2 text-sm mb-2"
+                                                            rows="2"
+                                                        />
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleRejectComment(comment.id)}
+                                                                className="text-xs bg-red-600 text-white hover:bg-red-700 px-3 py-1 rounded"
+                                                            >
+                                                                Confirm Reject
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setShowRejectForm(null)
+                                                                    setRejectReason("")
+                                                                }}
+                                                                className="text-xs bg-gray-300 text-gray-700 hover:bg-gray-400 px-3 py-1 rounded"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {approvedComments.length === 0 && flaggedComments.length === 0 && (
+                                <p className="text-gray-500 text-sm">No comments yet</p>
+                            )}
+
+                        </div>
+
+                    </div>
+
+
+                    {/* EDITOR PANEL */}
+
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 h-fit sticky top-10">
+
+                        <h3 className="text-lg font-semibold mb-4">
+                            Editorial Actions
+                        </h3>
+
+                        <textarea
+                            value={comments}
+                            onChange={(e)=>setComments(e.target.value)}
+                            placeholder="Explain what needs revision..."
+                            className="w-full border border-gray-300 rounded-md p-3 mb-6"
+                            rows="6"
+                        />
+
+                        <div className="flex flex-col gap-3">
+
+                            <button
+                                onClick={requestRevision}
+                                className="bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-md transition"
                             >
-                                Article ID: {article.id}
-                            </Typography>
-                        </Paper>
-                    </Grid>
-                </Grid>
-            </Container>
-        </Box>
-    );
+                                Request Revision
+                            </button>
+
+                            <button
+                                onClick={publish}
+                                className="bg-green-600 hover:bg-green-700 text-white py-3 rounded-md transition"
+                            >
+                                Publish Article
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </AuthenticatedLayout>
+
+    )
 }

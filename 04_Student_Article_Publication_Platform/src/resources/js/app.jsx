@@ -1,25 +1,32 @@
-import '../css/app.css';
-import './bootstrap';
+import "./bootstrap";
+import "../css/app.css";
 
-import { createInertiaApp } from '@inertiajs/react';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { createRoot } from 'react-dom/client';
-
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+import { createInertiaApp } from "@inertiajs/react";
+import { createRoot } from "react-dom/client";
+import { Toaster, toast } from "react-hot-toast";
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
-    resolve: (name) =>
-        resolvePageComponent(
-            `./Pages/${name}.jsx`,
-            import.meta.glob('./Pages/**/*.jsx'),
-        ),
+    resolve: name => {
+        const pages = import.meta.glob("./Pages/**/*.jsx", { eager: true });
+        return pages[`./Pages/${name}.jsx`];
+    },
+
     setup({ el, App, props }) {
+
         const root = createRoot(el);
 
-        root.render(<App {...props} />);
-    },
-    progress: {
-        color: '#4B5563',
+        root.render(
+            <>
+                <Toaster position="top-right" />
+
+                <App {...props} />
+
+                {props?.initialPage?.props?.flash?.success &&
+                    toast.success(props.initialPage.props.flash.success)}
+
+                {props?.initialPage?.props?.flash?.error &&
+                    toast.error(props.initialPage.props.flash.error)}
+            </>
+        );
     },
 });

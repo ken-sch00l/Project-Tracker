@@ -1,211 +1,101 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import {
-    Box,
-    Card,
-    Container,
-    TextField,
-    Button,
-    Typography,
-    Alert,
-    CircularProgress,
-} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-
-const Logo = () => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', mb: 3 }}>
-        <Box
-            sx={{
-                width: 50,
-                height: 50,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transform: 'perspective(1000px) rotateY(-10deg)',
-            }}
-        >
-            <EditIcon sx={{ color: 'white', fontSize: 28 }} />
-        </Box>
-        <Typography
-            variant="h5"
-            sx={{
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-            }}
-        >
-            PublishHub
-        </Typography>
-    </Box>
-);
+import { Head, Link, useForm } from '@inertiajs/react'
+import { useEffect, useState } from 'react'
 
 export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing } = useForm({
         name: '',
         email: '',
         password: '',
         password_confirmation: '',
-    });
+        role: 'student',
+    })
+
+    const [visible, setVisible] = useState(false)
+
+    useEffect(() => {
+        setVisible(true)
+    }, [])
 
     const submit = (e) => {
-        e.preventDefault();
-
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
-        });
-    };
+        e.preventDefault()
+        post(route('register'))
+    }
 
     return (
-        <Box
-            sx={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-            }}
-        >
+        <div className="min-h-screen bg-[#F8F6F1] flex items-center justify-center px-6">
             <Head title="Register" />
 
-            <Container maxWidth="sm">
-                <Card
-                    sx={{
-                        borderRadius: '16px',
-                        boxShadow: '0 20px 60px rgba(102, 126, 234, 0.3)',
-                        p: 4,
-                    }}
-                >
-                    <Logo />
+            <div className={`w-full max-w-md bg-white rounded-2xl shadow-md border border-gray-200 p-10 transition duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
 
-                    <Typography variant="h6" sx={{ textAlign: 'center', mb: 1, fontWeight: 700, color: '#1e293b' }}>
-                        Join PublishHub
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        sx={{ textAlign: 'center', mb: 3, color: '#64748b' }}
-                    >
-                        Create your account to start publishing
-                    </Typography>
+                <h2 className="text-3xl font-serif text-center mb-8">
+                    Create Account
+                </h2>
 
-                    <form onSubmit={submit}>
-                        <TextField
-                            id="name"
-                            name="name"
-                            label="Full Name"
-                            placeholder="John Doe"
-                            fullWidth
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
-                            error={!!errors.name}
-                            helperText={errors.name}
-                            autoComplete="name"
-                            autoFocus
-                            sx={{ mb: 2 }}
-                            required
-                        />
+                <form onSubmit={submit} className="space-y-6">
 
-                        <TextField
-                            id="email"
-                            type="email"
-                            name="email"
-                            label="Email Address"
-                            placeholder="your@email.com"
-                            fullWidth
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                            error={!!errors.email}
-                            helperText={errors.email}
-                            autoComplete="username"
-                            sx={{ mb: 2 }}
-                            required
-                        />
+                    <input
+                        type="text"
+                        placeholder="Full Name"
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:border-[#0F172A] transition duration-200"
+                        onChange={(e) => setData('name', e.target.value)}
+                        required
+                    />
 
-                        <TextField
-                            id="password"
-                            type="password"
-                            name="password"
-                            label="Password"
-                            placeholder="••••••••"
-                            fullWidth
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            error={!!errors.password}
-                            helperText={errors.password}
-                            autoComplete="new-password"
-                            sx={{ mb: 2 }}
-                            required
-                        />
+                    <input
+                        type="email"
+                        placeholder="Email Address"
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:border-[#0F172A] transition duration-200"
+                        onChange={(e) => setData('email', e.target.value)}
+                        required
+                    />
 
-                        <TextField
-                            id="password_confirmation"
-                            type="password"
-                            name="password_confirmation"
-                            label="Confirm Password"
-                            placeholder="••••••••"
-                            fullWidth
-                            value={data.password_confirmation}
-                            onChange={(e) => setData('password_confirmation', e.target.value)}
-                            error={!!errors.password_confirmation}
-                            helperText={errors.password_confirmation}
-                            autoComplete="new-password"
-                            sx={{ mb: 3 }}
-                            required
-                        />
-
-                        <Button
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            size="large"
-                            disabled={processing}
-                            sx={{
-                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                fontWeight: 700,
-                                textTransform: 'none',
-                                fontSize: '16px',
-                                py: 1.5,
-                                mb: 2,
-                            }}
+                    <div className="w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Role
+                        </label>
+                        <select
+                            className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:border-[#0F172A] transition duration-200"
+                            value={data.role}
+                            onChange={(e) => setData('role', e.target.value)}
                         >
-                            {processing ? (
-                                <CircularProgress size={24} sx={{ color: 'white' }} />
-                            ) : (
-                                'Create Account'
-                            )}
-                        </Button>
+                            <option value="student">Student</option>
+                            <option value="writer">Writer</option>
+                            <option value="editor">Editor</option>
+                        </select>
+                    </div>
 
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                                Already have an account?
-                            </Typography>
-                            <Link
-                                href={route('login')}
-                                style={{
-                                    color: '#667eea',
-                                    textDecoration: 'none',
-                                    fontWeight: 700,
-                                    fontSize: '15px',
-                                }}
-                            >
-                                Sign in here
-                            </Link>
-                        </Box>
-                    </form>
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:border-[#0F172A] transition duration-200"
+                        onChange={(e) => setData('password', e.target.value)}
+                        required
+                    />
 
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            display: 'block',
-                            textAlign: 'center',
-                            mt: 3,
-                            color: '#94a3b8',
-                        }}
+                    <input
+                        type="password"
+                        placeholder="Confirm Password"
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:border-[#0F172A] transition duration-200"
+                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        required
+                    />
+
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="w-full bg-[#0F172A] text-white py-3 rounded-lg hover:bg-[#1E293B] transition duration-300"
                     >
-                        By registering, you agree to PublishHub's Terms of Service
-                    </Typography>
-                </Card>
-            </Container>
-        </Box>
-    );
+                        {processing ? 'Creating account...' : 'Create Account'}
+                    </button>
+
+                    <div className="text-center">
+                        <Link href="/login" className="text-[#C6A75E] hover:underline">
+                            Already have an account?
+                        </Link>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    )
 }

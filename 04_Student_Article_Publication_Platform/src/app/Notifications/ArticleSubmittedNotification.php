@@ -20,14 +20,24 @@ class ArticleSubmittedNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['mail'];
+        return ['mail','database'];
     }
 
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Article Submitted')
-            ->line('An article has been submitted for review: '.$this->article->title)
-            ->action('Review Article', url(route('editor.articles.review', $this->article)));
+            ->subject('Article Submitted For Review')
+            ->line('A new article has been submitted.')
+            ->line('Title: '.$this->article->title)
+            ->action('Review Article', route('editor.articles.review', $this->article->id));
+    }
+
+    public function toDatabase($notifiable)
+    {
+        return [
+            'type' => 'article_submitted',
+            'message' => 'New article submitted: '.$this->article->title,
+            'url' => route('editor.articles.review', $this->article->id)
+        ];
     }
 }
