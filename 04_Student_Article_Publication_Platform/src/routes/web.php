@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WriterController;
 use App\Http\Controllers\EditorController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\ArticleController;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -185,6 +186,12 @@ Route::middleware(['auth','role:student'])
 
 });
 
+// Allow any authenticated role to post article comments (writers/editors also)
+Route::middleware(['auth'])->group(function () {
+    Route::post('/articles/{article}/comment', [StudentController::class, 'comment'])
+        ->name('student.articles.comment');
+});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -244,7 +251,10 @@ Route::middleware(['auth'])->group(function () {
             'article' => $article->load([
                 'writer',
                 'category',
-                'status'
+                'status',
+                'revisions' => function ($q) {
+                    $q->latest()->with('editor');
+                }
             ])
         ]);
 
@@ -255,6 +265,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('articles.favorite');
     Route::get('/articles/{article}/is-favorited', [FavoriteController::class, 'isFavorited'])
         ->name('articles.is-favorited');
+
+    // Delete article
+    Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])
+        ->name('articles.destroy');
 
 });
 

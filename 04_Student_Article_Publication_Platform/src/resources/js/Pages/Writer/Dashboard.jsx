@@ -30,14 +30,26 @@ export default function Dashboard({
     articles = [],
     stats = {},
     activity = [],
-    categoryStats = []
+    draftActivity = [],
+    deletedActivity = [],
+    activityRange = 'month',
+    categoryStats = [],
+    needsRevisionArticles = []
 }) {
 
     const submitArticle = (id) => {
-        router.post(`/writer/articles/${id}/submit`)
+        router.post(`/writer/articles/${id}/submit`, {}, { preserveScroll: true })
+    }
+
+    const deleteArticle = (id) => {
+        if (confirm('Are you sure you want to delete this article?')) {
+            router.delete(`/articles/${id}`, { preserveScroll: true })
+        }
     }
 
     const activitySafe = activity ?? []
+    const draftSafe = draftActivity ?? []
+    const deletedSafe = deletedActivity ?? []
     const categorySafe = categoryStats ?? []
 
     /*
@@ -46,14 +58,38 @@ export default function Dashboard({
     ---------------------------
     */
 
+    const labels = activitySafe.map(a => a.label)
+
+    const draftMap = Object.fromEntries(draftSafe.map(a => [a.label, a.total]))
+    const deletedMap = Object.fromEntries(deletedSafe.map(a => [a.label, a.total]))
+
+    const draftData = labels.map((label) => draftMap[label] || 0)
+    const deletedData = labels.map((label) => deletedMap[label] || 0)
+
     const activityChartData = {
-        labels: activitySafe.map(a => a.month),
+        labels,
         datasets: [
             {
-                label: "Articles",
+                label: "Created",
                 data: activitySafe.map(a => a.total),
                 borderColor: "#0F172A",
                 backgroundColor: "rgba(15,23,42,0.12)",
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: "Drafts",
+                data: draftData,
+                borderColor: "#64748B",
+                backgroundColor: "rgba(100,116,139,0.12)",
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: "Deleted",
+                data: deletedData,
+                borderColor: "#EF4444",
+                backgroundColor: "rgba(239,68,68,0.12)",
                 fill: true,
                 tension: 0.4
             }
@@ -147,9 +183,32 @@ export default function Dashboard({
 
                 <div className="bg-white border rounded-xl p-8 mb-14">
 
-                    <h3 className="text-2xl font-serif mb-6">
-                        Writing Activity
-                    </h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                        <h3 className="text-2xl font-serif">
+                            Writing Activity
+                        </h3>
+
+                        <div className="flex items-center gap-2">
+                            {['day','week','month'].map((rangeOption) => {
+                                const label = rangeOption.charAt(0).toUpperCase() + rangeOption.slice(1);
+                                const isActive = activityRange === rangeOption;
+
+                                return (
+                                    <button
+                                        key={rangeOption}
+                                        type="button"
+                                        onClick={() => {
+                                            if (activityRange === rangeOption) return;
+                                            router.get(route('writer.dashboard'), { range: rangeOption }, { preserveState: true, preserveScroll: true });
+                                        }}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium border transition ${isActive ? 'bg-[#0F172A] text-white border-[#0F172A]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                                    >
+                                        {label}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
 
                     <div style={{height:"260px"}}>
 
@@ -162,49 +221,6 @@ export default function Dashboard({
 
                 </div>
 
-
-                {/* ANALYTICS */}
-
-                <div className="grid md:grid-cols-2 gap-8 mb-14">
-
-                    {/* STATUS */}
-
-                    <div className="bg-white border rounded-xl p-6">
-
-                        <h3 className="font-serif text-lg mb-4">
-                            Article Status
-                        </h3>
-
-                        <div className="flex justify-center items-center" style={{height:"220px"}}>
-
-                            <div style={{width:"180px"}}>
-                                <Doughnut data={statusData}/>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* CATEGORY */}
-
-                    <div className="bg-white border rounded-xl p-6">
-
-                        <h3 className="font-serif text-lg mb-4">
-                            Articles by Category
-                        </h3>
-
-                        <div className="flex justify-center items-center" style={{height:"220px"}}>
-
-                            <div style={{width:"180px"}}>
-                                <Pie data={categoryData}/>
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
 
 
                 {/* ARTICLE MANAGEMENT */}
@@ -235,66 +251,95 @@ export default function Dashboard({
 
                 {/* ARTICLE GRID */}
 
-                <div className="grid md:grid-cols-3 gap-10">
+                {needsRevisionArticles.length > 0 && (
+                    <div className="mb-12">
+                        <h3 className="text-3xl font-serif mb-4">Pending Revisions</h3>
 
-                    {articles.map(article => {
+                        <div className="grid md:grid-cols-2 gap-6 mb-8">
+                            {needsRevisionArticles.map(article => {
 
-                        const status = article.status?.name
+                                const latestRevision = (article.revisions && article.revisions[0]) || null
 
-                        return (
+                                return (
+                                    <div key={article.id} className="bg-white p-6 rounded-xl border hover:shadow-lg transition">
+                                        <h4 className="text-lg font-semibold mb-2">{article.title}</h4>
+                                        <p className="text-sm text-gray-600 mb-3">{article.category?.name}</p>
+                                        {latestRevision && (
+                                            <div className="mb-3 text-sm text-gray-700">
+                                                <strong>Editor feedback:</strong>
+                                                <p className="mt-2 whitespace-pre-line">{latestRevision.comments}</p>
+                                            </div>
+                                        )}
 
-                            <div
-                                key={article.id}
-                                className="bg-white p-8 rounded-xl border hover:shadow-lg transition"
-                            >
+                                        <div className="flex gap-3">
+                                            <Link href={`/articles/${article.id}/edit`} className="text-sm px-4 py-2 border rounded-md">Edit</Link>
+                                            <button onClick={() => submitArticle(article.id)} className="text-sm px-4 py-2 bg-green-600 text-white rounded-md">Submit</button>
+                                            <button onClick={() => deleteArticle(article.id)} className="text-sm px-4 py-2 bg-red-600 text-white rounded-md">Delete</button>
+                                        </div>
+                                    </div>
+                                )
 
-                                <h4 className="text-xl font-semibold mb-2">
-                                    {article.title}
-                                </h4>
+                            })}
+                        </div>
+                    </div>
+                )}
 
-                                <p className="text-sm text-gray-500 mb-4">
-                                    {article.category?.name}
-                                </p>
+                {/* Draft Articles */}
+                <div className="mb-12">
+                    <h3 className="text-3xl font-serif mb-4">Draft Articles</h3>
 
-                                <div className="flex flex-wrap gap-3">
+                    {articles.filter(a => a.status?.name === 'draft').length === 0 ? (
+                        <p className="text-gray-600">No draft articles yet. Create one to start writing.</p>
+                    ) : (
+                        <div className="grid md:grid-cols-2 gap-6 mb-8">
+                            {articles.filter(a => a.status?.name === 'draft').map(article => (
+                                <div key={article.id} className="bg-white p-6 rounded-xl border hover:shadow-lg transition">
+                                    <h4 className="text-lg font-semibold mb-2">{article.title}</h4>
+                                    <p className="text-sm text-gray-600 mb-3">{article.category?.name}</p>
 
-                                    <Link
-                                        href={`/articles/${article.id}`}
-                                        className="text-sm px-4 py-2 border rounded-md"
-                                    >
-                                        View
-                                    </Link>
+                                    <div className="flex gap-3">
+                                        <Link href={`/articles/${article.id}/edit`} className="text-sm px-4 py-2 border rounded-md">Edit</Link>
+                                        <button onClick={() => submitArticle(article.id)} className="text-sm px-4 py-2 bg-green-600 text-white rounded-md">Submit</button>
+                                        <button onClick={() => deleteArticle(article.id)} className="text-sm px-4 py-2 bg-red-600 text-white rounded-md">Delete</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                                    {(status === "draft" || status === "needs_revision") && (
+                {/* Published Articles */}
+                <div className="mb-12">
+                    <h3 className="text-3xl font-serif mb-4">Published Articles</h3>
 
+                    {articles.filter(a => a.status?.name === 'published').length === 0 ? (
+                        <p className="text-gray-600">You haven't published anything yet.</p>
+                    ) : (
+                        <div className="grid md:grid-cols-3 gap-10">
+                            {articles.filter(a => a.status?.name === 'published').map(article => (
+                                <div key={article.id} className="bg-white p-8 rounded-xl border hover:shadow-lg transition">
+                                    <h4 className="text-xl font-semibold mb-2">{article.title}</h4>
+                                    <p className="text-sm text-gray-500 mb-4">{article.category?.name}</p>
+
+                                    <div className="flex flex-wrap gap-3">
                                         <Link
-                                            href={`/articles/${article.id}/edit`}
-                                            className="text-sm px-4 py-2 bg-[#0F172A] text-white rounded-md"
+                                            href={`/articles/${article.id}`}
+                                            className="text-sm px-4 py-2 border rounded-md"
                                         >
-                                            Edit
+                                            View
                                         </Link>
 
-                                    )}
-
-                                    {status === "draft" && (
-
                                         <button
-                                            onClick={() => submitArticle(article.id)}
-                                            className="text-sm px-4 py-2 bg-green-600 text-white rounded-md"
+                                            onClick={() => deleteArticle(article.id)}
+                                            className="text-sm px-4 py-2 bg-red-600 text-white rounded-md"
                                         >
-                                            Submit
+                                            Delete
                                         </button>
-
-                                    )}
-
+                                    </div>
                                 </div>
-
-                            </div>
-
-                        )
-
-                    })}
-
+                            ))}
+                        </div>
+                    )}
                 </div>
 
             </div>

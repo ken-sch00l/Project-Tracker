@@ -35,6 +35,18 @@ class ArticlePolicy
         return $user->hasRole('writer') && $article->writer_id === $user->id;
     }
 
+    public function delete(User $user, Article $article)
+    {
+        // Writers can delete their own articles; editors can delete any
+        if ($user->hasRole('editor')) {
+            return true;
+        }
+        if ($user->hasRole('writer')) {
+            return $article->writer_id === $user->id;
+        }
+        return false;
+    }
+
     public function view(User $user, Article $article)
     {
         // writers can view own; editors can view any; students can view published

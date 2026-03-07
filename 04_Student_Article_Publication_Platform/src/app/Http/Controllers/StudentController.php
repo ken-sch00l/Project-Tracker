@@ -129,8 +129,6 @@ class StudentController extends Controller
             );
         }
 
-        return redirect()
-            ->route('student.dashboard')
-            ->with('success', 'Comment posted successfully.');
+        return redirect()->back()->with('success', 'Comment posted successfully.');
     }
 }

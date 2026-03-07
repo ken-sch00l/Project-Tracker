@@ -8,6 +8,10 @@ export default function Show({ article, relatedArticles = [] }) {
     const user = auth.user
 
     const isStudent = user?.roles?.some(role => role.name === "student")
+    const isWriter = user?.roles?.some(role => role.name === "writer")
+    const isEditor = user?.roles?.some(role => role.name === "editor")
+    const isOwner = user?.id === article.writer_id
+    const isDraftOrNeedsRevision = ['draft', 'needs_revision'].includes(article.status?.name)
 
     const [isFavorited, setIsFavorited] = useState(false)
     const [shareOpen, setShareOpen] = useState(false)
@@ -24,10 +28,22 @@ export default function Show({ article, relatedArticles = [] }) {
         }
     }, [article.id, user])
 
+    const [replyTo, setReplyTo] = useState(null)
+
     const submitComment = (e) => {
         e.preventDefault()
+        const payload = { content: data.content }
+
+        if (replyTo) {
+            payload.content = `@${replyTo} ${payload.content}`
+        }
+
         post(route('student.articles.comment', article.id), {
-            onSuccess: () => reset()
+            data: payload,
+            onSuccess: () => {
+                reset()
+                setReplyTo(null)
+            }
         })
     }
 
@@ -116,6 +132,28 @@ export default function Show({ article, relatedArticles = [] }) {
                                 </button>
                             )}
 
+                            {isWriter && isOwner && isDraftOrNeedsRevision && (
+                                <>
+                                    <Link
+                                        href={`/articles/${article.id}/edit`}
+                                        className="px-3 py-2 bg-[#0F172A] text-white rounded-md text-sm font-medium hover:bg-[#1E293B]"
+                                    >
+                                        Edit Draft
+                                    </Link>
+
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Submit this article for review?')) {
+                                                router.post(route('writer.articles.submit', article.id), {}, { preserveScroll: true })
+                                            }
+                                        }}
+                                        className="px-3 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
+                                    >
+                                        Submit for Review
+                                    </button>
+                                </>
+                            )}
+
                             <div className="relative">
                                 <button
                                     onClick={() => setShareOpen(!shareOpen)}
@@ -125,29 +163,28 @@ export default function Show({ article, relatedArticles = [] }) {
                                 </button>
 
                                 {shareOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                    <div className="absolute right-0 mt-2 w-48 bg-white border-2 border-gray-400 rounded-lg shadow-xl z-10">
                                         <button
                                             onClick={() => handleShare('facebook')}
-                                            className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                            className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 text-black font-semibold border-b border-gray-200"
                                         >
                                             📘 Facebook
                                         </button>
                                         <button
                                             onClick={() => handleShare('twitter')}
-                                            className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                            className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 text-black font-semibold border-b border-gray-200"
                                         >
                                             𝕏 Twitter
                                         </button>
                                         <button
                                             onClick={() => handleShare('linkedin')}
-                                            className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                            className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 text-black font-semibold border-b border-gray-200"
                                         >
                                             💼 LinkedIn
                                         </button>
-                                        <hr />
                                         <button
                                             onClick={() => handleShare('copy')}
-                                            className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                                            className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center gap-2 text-black font-semibold"
                                         >
                                             🔗 Copy Link
                                         </button>
@@ -224,6 +261,15 @@ export default function Show({ article, relatedArticles = [] }) {
                                                 {new Date(comment.created_at).toLocaleDateString()}
                                             </p>
                                         </div>
+
+                                        {(isWriter || isEditor) && (
+                                            <button
+                                                onClick={() => setReplyTo(comment.student?.name)}
+                                                className="text-xs bg-blue-100 text-blue-600 hover:bg-blue-200 px-2 py-1 rounded"
+                                            >
+                                                ↩️ Reply
+                                            </button>
+                                        )}
                                     </div>
 
                                     <p className="text-gray-800 mt-2">
@@ -249,6 +295,19 @@ export default function Show({ article, relatedArticles = [] }) {
                     {user && (
 
                         <form onSubmit={submitComment} className="border-t pt-6">
+
+                            {replyTo && (
+                                <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 border border-blue-100 rounded">
+                                    <span className="text-sm text-blue-700">Replying to @{replyTo}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setReplyTo(null)}
+                                        className="text-xs text-blue-600 hover:underline"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            )}
 
                             <textarea
                                 className="w-full border border-gray-300 rounded-lg p-4 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"

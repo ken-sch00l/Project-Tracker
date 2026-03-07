@@ -15,9 +15,11 @@ use App\Notifications\ArticleSubmittedNotification;
 class WriterController extends Controller
 {
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $writerId = Auth::id();
+
+        $range = $request->get('range', 'month');
 
         $articles = Article::with(['status','category'])
             ->where('writer_id', $writerId)
@@ -47,16 +49,61 @@ class WriterController extends Controller
             ->limit(5)
             ->get();
 
-        $month = DB::getDriverName() === 'sqlite'
-            ? "strftime('%m', created_at)"
-            : 'MONTH(created_at)';
+        // Pending revisions assigned to this writer
+        $needsRevisionArticles = Article::where('writer_id', $writerId)
+            ->whereHas('status', fn($q) => $q->where('name','needs_revision'))
+            ->with(['status','category','revisions' => function($q){ $q->latest(); }])
+            ->latest()
+            ->get();
+
+        $driver = DB::getDriverName();
+
+        // Activity chart can be grouped by day/week/month (default: month)
+        if ($range === 'day') {
+            $periodSelect = $driver === 'sqlite'
+                ? "date(created_at)"
+                : "DATE(created_at)";
+        } elseif ($range === 'week') {
+            // For sqlite, strftime('%Y-%W') gives YYYY-WW; for MySQL, use ISO week number
+            $periodSelect = $driver === 'sqlite'
+                ? "strftime('%Y-%W', created_at)"
+                : "DATE_FORMAT(created_at, '%x-W%v')";
+        } else {
+            // month
+            $periodSelect = $driver === 'sqlite'
+                ? "strftime('%m', created_at)"
+                : "MONTH(created_at)";
+        }
 
         $activity = Article::where('writer_id', $writerId)
-            ->selectRaw("{$month} as month, COUNT(*) as total")
-            ->groupBy('month')
-            ->orderBy('month')
+            ->selectRaw("{$periodSelect} as period, COUNT(*) as total")
+            ->groupBy('period')
+            ->orderBy('period')
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($range) {
+
+                if ($range === 'day') {
+                    return [
+                        'label' => date('M j', strtotime($item->period)),
+                        'total' => $item->total
+                    ];
+                }
+
+                if ($range === 'week') {
+                    $week = $item->period;
+
+                    if (str_contains($week, '-W')) {
+                        $week = explode('-W', $week)[1];
+                    } elseif (str_contains($week, '-')) {
+                        $parts = explode('-', $week);
+                        $week = end($parts);
+                    }
+
+                    return [
+                        'label' => 'Wk ' . ltrim($week, '0'),
+                        'total' => $item->total
+                    ];
+                }
 
                 $months = [
                     1 => 'Jan', 2 => 'Feb', 3 => 'Mar',
@@ -66,7 +113,95 @@ class WriterController extends Controller
                 ];
 
                 return [
-                    'month' => $months[$item->month],
+                    'label' => $months[(int) $item->period] ?? $item->period,
+                    'total' => $item->total
+                ];
+            });
+
+        // Draft recording for activity
+        $draftActivity = Article::where('writer_id', $writerId)
+            ->whereHas('status', fn($q) => $q->where('name', 'draft'))
+            ->selectRaw("{$periodSelect} as period, COUNT(*) as total")
+            ->groupBy('period')
+            ->orderBy('period')
+            ->get()
+            ->map(function ($item) use ($range) {
+                if ($range === 'day') {
+                    return [
+                        'label' => date('M j', strtotime($item->period)),
+                        'total' => $item->total
+                    ];
+                }
+
+                if ($range === 'week') {
+                    $week = $item->period;
+
+                    if (str_contains($week, '-W')) {
+                        $week = explode('-W', $week)[1];
+                    } elseif (str_contains($week, '-')) {
+                        $parts = explode('-', $week);
+                        $week = end($parts);
+                    }
+
+                    return [
+                        'label' => 'Wk ' . ltrim($week, '0'),
+                        'total' => $item->total
+                    ];
+                }
+
+                $months = [
+                    1 => 'Jan', 2 => 'Feb', 3 => 'Mar',
+                    4 => 'Apr', 5 => 'May', 6 => 'Jun',
+                    7 => 'Jul', 8 => 'Aug', 9 => 'Sep',
+                    10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+                ];
+
+                return [
+                    'label' => $months[(int) $item->period] ?? $item->period,
+                    'total' => $item->total
+                ];
+            });
+
+        // Deletions (soft deleted)
+        $deletedActivity = Article::onlyTrashed()
+            ->where('writer_id', $writerId)
+            ->selectRaw("{$periodSelect} as period, COUNT(*) as total")
+            ->groupBy('period')
+            ->orderBy('period')
+            ->get()
+            ->map(function ($item) use ($range) {
+                if ($range === 'day') {
+                    return [
+                        'label' => date('M j', strtotime($item->period)),
+                        'total' => $item->total
+                    ];
+                }
+
+                if ($range === 'week') {
+                    $week = $item->period;
+
+                    if (str_contains($week, '-W')) {
+                        $week = explode('-W', $week)[1];
+                    } elseif (str_contains($week, '-')) {
+                        $parts = explode('-', $week);
+                        $week = end($parts);
+                    }
+
+                    return [
+                        'label' => 'Wk ' . ltrim($week, '0'),
+                        'total' => $item->total
+                    ];
+                }
+
+                $months = [
+                    1 => 'Jan', 2 => 'Feb', 3 => 'Mar',
+                    4 => 'Apr', 5 => 'May', 6 => 'Jun',
+                    7 => 'Jul', 8 => 'Aug', 9 => 'Sep',
+                    10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+                ];
+
+                return [
+                    'label' => $months[(int) $item->period] ?? $item->period,
                     'total' => $item->total
                 ];
             });
@@ -75,7 +210,11 @@ class WriterController extends Controller
             'articles' => $articles,
             'stats' => $stats,
             'popularArticles' => $popularArticles,
-            'activity' => $activity
+            'activity' => $activity,
+            'draftActivity' => $draftActivity,
+            'deletedActivity' => $deletedActivity,
+            'needsRevisionArticles' => $needsRevisionArticles,
+            'activityRange' => $range
         ]);
     }
 

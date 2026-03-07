@@ -30,7 +30,7 @@ class RevisionRequestedNotification extends Notification
             ->line('A revision has been requested for your article: '.$this->revision->article->title)
             ->line('Editor Feedback:')
             ->line($this->revision->comments ?? 'No comments provided.')
-            ->action('View Article', route('articles.show', $this->revision->article->id));
+            ->action('Edit Article', route('articles.edit', $this->revision->article->id));
     }
 
     public function toDatabase($notifiable)
@@ -38,7 +38,7 @@ class RevisionRequestedNotification extends Notification
         return [
             'type' => 'revision_requested',
             'message' => 'Revision requested for: '.$this->revision->article->title,
-            'url' => route('articles.show', $this->revision->article->id)
+            'url' => route('articles.edit', $this->revision->article->id)
         ];
     }
 }

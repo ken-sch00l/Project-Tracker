@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
-import { Head, Link } from '@inertiajs/react'
+import { Head, Link, router } from '@inertiajs/react'
 
 import {
     Chart as ChartJS,
@@ -32,6 +32,12 @@ export default function Dashboard({ pending = [], needsRevision = [], published 
     const revisionSafe = needsRevision ?? []
     const publishedSafe = published ?? []
     const activitySafe = activity ?? []
+
+    const deleteArticle = (id) => {
+        if (confirm('Are you sure you want to delete this article?')) {
+            router.delete(`/articles/${id}`, { preserveScroll: true })
+        }
+    }
 
     // group published articles by author/editor who published them
     let publishedBy = {};
@@ -177,7 +183,7 @@ export default function Dashboard({ pending = [], needsRevision = [], published 
 
                     {pendingSafe.slice(0,6).map(article => (
 
-                        <ArticleCard key={article.id} article={article}/>
+                        <ArticleCard key={article.id} article={article} onDelete={deleteArticle}/>
 
                     ))}
 
@@ -194,7 +200,7 @@ export default function Dashboard({ pending = [], needsRevision = [], published 
 
                     {revisionSafe.slice(0,6).map(article => (
 
-                        <ArticleCard key={article.id} article={article}/>
+                        <ArticleCard key={article.id} article={article} onDelete={deleteArticle}/>
 
                     ))}
 
@@ -212,7 +218,7 @@ export default function Dashboard({ pending = [], needsRevision = [], published 
                         <h4 className="text-xl font-semibold mb-4">{publisher}</h4>
                         <div className="grid md:grid-cols-3 gap-8">
                             {arts.map(article => (
-                                <ArticleCard key={article.id} article={article} />
+                                <ArticleCard key={article.id} article={article} onDelete={deleteArticle} />
                             ))}
                         </div>
                     </div>
@@ -225,7 +231,7 @@ export default function Dashboard({ pending = [], needsRevision = [], published 
 }
 
 
-function ArticleCard({article}){
+function ArticleCard({article, onDelete}){
 
     return(
 
@@ -239,12 +245,20 @@ function ArticleCard({article}){
                 {article.writer?.name}
             </p>
 
-            <Link
-                href={route('editor.articles.review', article.id)}
-                className="bg-[#0F172A] text-white px-4 py-2 rounded text-sm hover:bg-[#1E293B]"
-            >
-                Review
-            </Link>
+            <div className="flex gap-2">
+                <Link
+                    href={route('editor.articles.review', article.id)}
+                    className="bg-[#0F172A] text-white px-4 py-2 rounded text-sm hover:bg-[#1E293B]"
+                >
+                    Review
+                </Link>
+                <button
+                    onClick={() => onDelete(article.id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700"
+                >
+                    Delete
+                </button>
+            </div>
 
         </div>
 

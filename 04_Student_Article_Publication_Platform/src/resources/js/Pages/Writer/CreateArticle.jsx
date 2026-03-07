@@ -10,12 +10,27 @@ export default function CreateArticle({ categories = [] }) {
     const { data, setData, post, processing } = useForm({
         title: "",
         content: "",
-        category_id: ""
+        category_id: "",
+        submit: false
     })
 
     const submit = (e) => {
         e.preventDefault()
-        post(route("writer.articles.store"))
+
+        // Ensure we send draft status; state updates are async so post in next tick.
+        setData('submit', false)
+        setTimeout(() => {
+            post(route("writer.articles.store"), { preserveScroll: true })
+        }, 0)
+    }
+
+    const submitForReview = (e) => {
+        e.preventDefault()
+
+        setData('submit', true)
+        setTimeout(() => {
+            post(route("writer.articles.store"), { preserveScroll: true })
+        }, 0)
     }
 
     return (
@@ -60,13 +75,23 @@ export default function CreateArticle({ categories = [] }) {
                         onBlur={(newContent) => setData("content", newContent)}
                     />
 
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="bg-[#0F172A] text-white px-8 py-3 rounded-md"
-                    >
-                        Save Article
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="bg-[#0F172A] text-white px-8 py-3 rounded-md"
+                        >
+                            Save Article
+                        </button>
+
+                        <button
+                            onClick={submitForReview}
+                            disabled={processing}
+                            className="bg-green-600 text-white px-6 py-3 rounded-md"
+                        >
+                            Submit for Review
+                        </button>
+                    </div>
 
                 </form>
 
