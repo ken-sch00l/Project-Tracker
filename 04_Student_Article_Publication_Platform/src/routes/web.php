@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\CommentModerationController;
 use App\Http\Controllers\ThemeController;
+use Illuminate\Support\Facades\Auth;
 
 Route::aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
 
@@ -201,6 +202,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if ($user->hasRole('editor')) {
